@@ -1,0 +1,51 @@
+### Local
+
+python3 -m venv ~/.customs_portal
+
+source ~/.customs_portal/bin/activate
+
+pip install -r requirements.txt
+
+streamlit run app.py
+
+###################################
+###################################
+
+### Docker
+
+# Writing Dockerfile 
+
+Choosing python image from Docker hub: 
+
+e.g.: python:3.11-bullseye
+
+# Dockerfile
+'''
+FROM python:3.11-slim-bullseye
+
+WORKDIR /st_custom_portal_app
+
+COPY requirements.txt /st_custom_portal_app/
+
+RUN python -m pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+
+COPY . /st_custom_portal_app/
+
+EXPOSE 8501
+
+CMD ["streamlit","run", "app.py"]
+'''
+
+$ docker build -t customs_portal:v00 .
+
+$ docker run --name customs_portal -p 8501:8501 customs_portal:v00
+
+######
+La conexión entre dockers debe ser resuelta con docker compose.....
+Ahora la conexion está atada con alambre:
+
+## AI model
+st.header('Fraud detection AI model')
+
+# model_url = 'http://127.0.0.1:5000/' 
+model_url ='http://host.docker.internal:5000'
