@@ -23,7 +23,7 @@ st.markdown(hide(".st-emotion-cache-zq5wmm.ezrtsby0"), unsafe_allow_html=True) #
 st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), unsafe_allow_html=True)
 
 ### HEADER
-img = "https://clikc.wcoomd.org/pluginfile.php/1/totara_core/loginimage/21999/Banner.png"
+img = "images/DALLE-customs-portal_cut.jpg"
 st.image(img, use_column_width=True)
 title()
 

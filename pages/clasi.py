@@ -47,10 +47,9 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 ################################
 
 ### HEADER
-# img = "https://clikc.wcoomd.org/pluginfile.php/1/totara_core/loginimage/21999/Banner.png"
-# st.image(img, use_column_width=True)
-title()
-st.title("HS Code Prediction")
+img = "images/DALLE-hs-classi_cut.jpg"
+st.image(img, use_column_width=True)
+st.header("HS Classification Assistant")
 
 ################################
 ################################
@@ -61,7 +60,7 @@ st.title("HS Code Prediction")
 # FastAPI endpoint URL
 API_URL = "http://localhost:8000/predict_info"
 
-st.write("Enter a product description to get predicted HS Codes with additional information.")
+st.write("Enter a product description to get predicted HS Codes with additional information")
 
 # User input for the product description
 description = st.text_input("Product Description", value="apple iphone")

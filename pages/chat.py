@@ -47,10 +47,9 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 ################################
 
 ### HEADER
-# img = "https://clikc.wcoomd.org/pluginfile.php/1/totara_core/loginimage/21999/Banner.png"
-# st.image(img, use_column_width=True)
-title()
-st.header("Chatbot")
+img = "images/DALLE-chatbot_cut.jpg"
+st.image(img, use_column_width=True)
+st.header("Assistant Bot")
 
 ################################
 ################################
@@ -101,7 +100,7 @@ def response_generator(response_text):
         time.sleep(0.05)
 
 # Set up the app layout with a sidebar for navigation
-st.title("Chat with Adubot")
+st.markdown("Chat with me")
 
 # Sidebar navigation: Chat or Index Documents
 app_mode = st.sidebar.selectbox("Choose an action", ["Chat", "Index Documents"])

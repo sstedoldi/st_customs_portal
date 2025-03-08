@@ -46,9 +46,8 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 ################################
 
 ### HEADER
-img = "https://clikc.wcoomd.org/pluginfile.php/1/totara_core/loginimage/21999/Banner.png"
+img = "images/DALLE-risk-management_cut.jpg"
 st.image(img, use_column_width=True)
-title()
 st.header("Risk Management")
 
 ################################
@@ -152,7 +151,7 @@ st.header('Fraud detection AI model')
 
 # model_url = 'http://127.0.0.1:5000/' 
 # model_url ='http://host.docker.internal:5000'
-model_url ='http://18.210.14.100:5000'
+model_url ='http://localhost:5000'
 
 meta_endpoint = os.path.join(model_url,'metadata')
 
