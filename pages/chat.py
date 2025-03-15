@@ -77,10 +77,11 @@ def ask_question(query):
         return None
 
 # Function to call Flask backend for indexing documents
-def index_documents(source_type, source_path, additional_info, comments):
+def index_documents(source_type, source_path, doc_title, additional_info, comments):
     response = requests.post(f"{BASE_URL}/index", json={
         "source_type": source_type,
         "source_path": source_path,
+        "doc_title": doc_title,
         "additional_info": additional_info,
         "comments": comments,
     })
@@ -153,12 +154,13 @@ elif app_mode == "Indexer":
         # Input fields for document indexing
         source_type = st.selectbox("Source Type", ["pdf", "webpage", "directory"])
         source_path = st.text_input("Enter the document path or URL")
+        doc_title = st.text_input("Enter the document title")
         additional_info  = st.text_input("Enter additional information")
         comments = st.text_input("Enter the other comments")
         # Button to trigger indexing
         if st.button("Index"):
             if source_path:
-                index_documents(source_type, source_path, additional_info, comments)
+                index_documents(source_type, source_path, doc_title, additional_info, comments)
             else:
                 st.warning("Please provide a valid document path or URL")
     
