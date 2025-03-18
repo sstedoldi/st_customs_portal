@@ -24,7 +24,7 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 
 ### HEADER
 img = "images/DALLE-customs-portal_cut.jpg"
-st.image(img, use_column_width=True)
+st.image(img, use_container_width=True)
 title()
 
 ### INPUTS

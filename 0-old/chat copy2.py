@@ -92,10 +92,8 @@ def response_generator(response_text):
         yield word + " "
         time.sleep(0.05)
 
-# Create tabs for Chatbot, Semantic Search, Index Documents, and Indexing History
-chat_tab, search_tab, index_tab, history_tab = st.tabs([
-    "Chatbot", "Semantic Search", "Index Documents", "Indexing History"
-])
+# Create tabs for Chatbot, Index Documents, and Indexing History
+chat_tab, index_tab, history_tab = st.tabs(["Chatbot", "Search", "Index Documents", "Indexing History"])
 
 ################################
 # Chatbot Tab
@@ -103,24 +101,39 @@ with chat_tab:
     st.subheader("Chatbot")
     st.markdown("Ask me about customs :female-police-officer:")
 
-    # Display existing messages FIRST
+    ################################
+    # 1. Display existing messages FIRST
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Then capture new user input
+    ################################
+    # 2. Then capture new user input
+    # Accept user input for chat
     if prompt := st.chat_input("Ask something..."):
         # Display user's message in the chat
         with st.chat_message("user"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-        # Use question answering for chatbot queries
-        response_text = ask_question(prompt)
+        # Determine whether the query is for semantic search or QA
+        if prompt.lower().startswith("search:"):
+            query = prompt[7:]
+            response_data = semantic_search(query)
+            if response_data:
+                response_text = "\n".join([
+                    f"Node: {item['node']}, Score: {item['score']}" 
+                    for item in response_data
+                ])
+            else:
+                response_text = "No results found."
+        else:
+            response_text = ask_question(prompt)
 
         # Display the assistant's response with a stream-like effect
         with st.chat_message("assistant"):
             if response_text:
+                # Simulate streaming
                 response_stream = response_generator(response_text)
                 streamed_text = ""
                 text_placeholder = st.empty()  # Placeholder for incremental text
@@ -133,72 +146,19 @@ with chat_tab:
         # Store assistant message in session
         st.session_state.messages.append({"role": "assistant", "content": response_text})
 
-################################
-# Semantic Search Tab
-with search_tab:
-    st.subheader("Semantic Search")
-    st.markdown("Enter a query to find documentation :gear:")
-    
-    search_query = st.text_input("Search Query", key="semantic_search_query")
-    if st.button("Search", key="semantic_search_button"):
-        if search_query:
-            response_data = semantic_search(search_query)
-            if response_data:
-                rows = []
-                # Iterate over each result returned from the backend
-                for item in response_data:
-                    node = item.get("node")
-                    score = item.get("score")
-                    # If the node is a dict, extract metadata; otherwise, fall back to string representation
-                    if isinstance(node, dict):
-                        metadata = node.get("metadata", {})
-                        doc_title = metadata.get("doc_title", "N/A")
-                        file_path = metadata.get("file_path", "N/A")
-                        source_type = metadata.get("source_type", "N/A")
-                        indexed_date = metadata.get("indexed_date", "N/A")
-                        snippet = node.get("text", "")[:200]  # Show first 200 characters as a snippet
-                    else:
-                        # When node is not a dict, show its string representation
-                        doc_title = "N/A"
-                        file_path = "N/A"
-                        source_type = "N/A"
-                        indexed_date = "N/A"
-                        snippet = str(node)[:200]
-                    
-                    rows.append({
-                        "Document Title": doc_title,
-                        "File Path": file_path,
-                        "Source Type": source_type,
-                        "Indexed Date": indexed_date,
-                        "Score": score,
-                        "Snippet": snippet
-                    })
-                
-                # Display results as a DataFrame
-                df = pd.DataFrame(rows)
-                st.write("Retrieved Documents:")
-                st.dataframe(df)
-                
-                # Additionally, display each document's full details in expandable sections
-                st.write("Detailed Results:")
-                for i, row in df.iterrows():
-                    with st.expander(f"Document {i+1}: {row['Document Title']} (Score: {row['Score']})"):
-                        st.write(row)
-            else:
-                st.info("No results found.")
-        else:
-            st.warning("Please enter a search query.")
 
 ################################
-# Index Documents Tab
+# Indexer Tab
 with index_tab:
-    st.subheader("Index Documents")
-    st.markdown("Feed the knowledge database :robot_face:")
+    st.subheader("Indexer")
+    st.markdown("Feed the knowledge database.")
+    # Input fields for document indexing
     source_type = st.selectbox("Source Type", ["pdf", "webpage", "directory"])
     source_path = st.text_input("Enter the document path or URL")
     doc_title = st.text_input("Enter the document title")
     additional_info  = st.text_input("Enter additional information")
     comments = st.text_input("Enter the other comments")
+    # Button to trigger indexing
     if st.button("Index"):
         if source_path:
             index_documents(source_type, source_path, doc_title, additional_info, comments)
@@ -206,14 +166,16 @@ with index_tab:
             st.warning("Please provide a valid document path or URL")
 
 ################################
-# Indexing History Tab
+# History Tab
 with history_tab:
-    st.subheader("Indexing History")
-    st.markdown("Review the indexing history :floppy_disk:")
+    st.subheader("Indexer")
+    st.markdown("Review the indexing history.")
+    # Button to refresh the history
     if st.button("Refresh History"):
         history_data = get_index_history()
         if history_data:
             df = pd.DataFrame(history_data)
+            # Format the indexed_date column as datetime if available
             if "indexed_date" in df.columns:
                 df["indexed_date"] = pd.to_datetime(df["indexed_date"])
             st.dataframe(df)
