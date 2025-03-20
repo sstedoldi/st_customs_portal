@@ -6,7 +6,8 @@ pd.options.display.float_format = '{:.2f}'.format
 # Local components and configuration imports
 from modules.gral_config import page_config
 from modules.data_processes import basic_trafo, load_data, today_filtering
-from modules.gral_comp import title, total_metric, metric_dict, colors, line_plot, line_plot_cur_vs_pre
+from modules.gral_comp import title, total_metric, metric_dict, colors, \
+    line_plot, line_plot_cur_vs_pre, vbarplot_top_cat
 from styles.basics import hide, lg_color, cont_padding
 
 ### CONFIGURATION
@@ -19,7 +20,7 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 
 ### HEADER
 img = "images/DALLE-customs-portal_cut.jpg"
-st.image(img, use_column_width=True)  # Adjusted for compatibility
+st.image(img, use_container_width=True)
 title()
 
 ### SIDEBAR FILTERS
@@ -45,6 +46,10 @@ df_filtered = df[
     (df['formatted_date'] <= pd.to_datetime(selected_dates[1]))
 ]
 
+# Numeric columns
+# numeric_cols = list(df_filtered.select_dtypes(include=["number"]).columns)
+numeric_cols = ['CIF_USD_EQUIVALENT','QUANTITY','GROSS.WEIGHT','TOTAL.TAXES.USD','RAISED_TAX_AMOUNT_USD']
+
 # Office filter (if desired, can be omitted for performance)
 office_options = sorted(df_filtered['OFFICE'].unique())
 selected_offices = st.sidebar.multiselect("Select Office(s)", options=office_options, default=office_options)
@@ -60,7 +65,7 @@ tabs = st.tabs(["Dashboard", "Agg Analysis", "Illicit Findings"])
 # Tab 1: Dashboard – Key Metrics and Global Trends
 with tabs[0]:
     st.header("Dashboard")
-    
+
     st.subheader("Key Metrics")
     col1, col2, col3 = st.columns(3)
     columns = [col1, col2, col3]
@@ -77,7 +82,7 @@ with tabs[0]:
             count = 0
 
     st.markdown("---")
-    
+
     st.subheader("Global Trends")
     period_option = st.radio("Period", options=['6M', '12M', 'CW'], horizontal=True)
     for idx, var in enumerate(['CIF_USD_EQUIVALENT', 'TOTAL.TAXES.USD']):
@@ -88,45 +93,65 @@ with tabs[0]:
 
 # Tab 2: Aggregated Analysis – Top N Plots and Tables
 with tabs[1]:
-    st.header("Aggregated Analysis")
-    
-    # Top Offices by CIF USD
-    st.subheader("Top Offices by CIF (USD)")
-    top_n_offices = st.slider("Select Top N Offices", min_value=3, max_value=20, value=5, key="offices")
-    offices_top = df_filtered.groupby("OFFICE")["CIF_USD_EQUIVALENT"].sum().reset_index()
-    offices_top = offices_top.sort_values(by="CIF_USD_EQUIVALENT", ascending=False).head(top_n_offices)
-    offices_top = offices_top.set_index("OFFICE")
-    st.bar_chart(offices_top)
 
-    # Top Importers by CIF USD
-    st.subheader("Top Importers by CIF (USD)")
-    top_n_importers = st.slider("Select Top N Importers", min_value=3, max_value=20, value=5, key="importers")
-    importers_top = df_filtered.groupby("IMPORTER.TIN")["CIF_USD_EQUIVALENT"].sum().reset_index()
-    importers_top = importers_top.sort_values(by="CIF_USD_EQUIVALENT", ascending=False).head(top_n_importers)
-    importers_top = importers_top.set_index("IMPORTER.TIN")
-    st.bar_chart(importers_top)
-    
+    st.header("Aggregated Analysis")
+
+    group_col = "OFFICE"
+    st.subheader(group_col)
+    col_plot, col_controls = st.columns([3, 1])
+
+    with col_controls:
+        top_n = st.slider(f"Top N {group_col}", min_value=3, max_value=20, value=5, key=f"top_n_slider_{group_col}")
+        selected_num_col = st.selectbox("Numeric Variable", options=numeric_cols, key=f"num_col_{group_col}")
+
+    with col_plot:
+        vbarplot_top_cat(
+            df=df_filtered,
+            group_col=group_col,
+            num_col=selected_num_col,
+            top_n=top_n,
+            title=f"Top {top_n} {group_col} by {selected_num_col}"
+        )
+
     st.markdown("---")
-    st.subheader("Detailed Aggregated Tables")
-    st.write("**Offices Activity**")
-    offices_grouped = df_filtered.groupby("OFFICE").agg({
-        "CIF_USD_EQUIVALENT": "sum",
-        "QUANTITY": "sum",
-        "GROSS.WEIGHT": "sum",
-        "TOTAL.TAXES.USD": "sum",
-        "RAISED_TAX_AMOUNT_USD": "sum"
-    }).reset_index()
-    st.dataframe(offices_grouped)
-    
-    st.write("**Importer Activity**")
-    importer_grouped = df_filtered.groupby("IMPORTER.TIN").agg({
-        "CIF_USD_EQUIVALENT": "sum",
-        "QUANTITY": "sum",
-        "GROSS.WEIGHT": "sum",
-        "TOTAL.TAXES.USD": "sum",
-        "RAISED_TAX_AMOUNT_USD": "sum"
-    }).reset_index()
-    st.dataframe(importer_grouped)
+    group_col = "IMPORTER.TIN"
+    st.subheader(group_col)
+    col_plot, col_controls = st.columns([3, 1])
+
+    with col_controls:
+        top_n = st.slider(f"Top N {group_col}", min_value=3, max_value=20, value=5, key=f"top_n_slider_{group_col}")
+        selected_num_col = st.selectbox("Numeric Variable", options=numeric_cols, key=f"num_col_{group_col}")
+
+    with col_plot:
+        vbarplot_top_cat(
+            df=df_filtered,
+            group_col=group_col,
+            num_col=selected_num_col,
+            top_n=top_n,
+            title=f"Top {top_n} {group_col} by {selected_num_col}"
+        )
+
+    # st.markdown("---")
+    # st.subheader("Detailed Aggregated Tables")
+    # st.write("**Offices Activity**")
+    # offices_grouped = df_filtered.groupby("OFFICE").agg({
+    #     "CIF_USD_EQUIVALENT": "sum",
+    #     "QUANTITY": "sum",
+    #     "GROSS.WEIGHT": "sum",
+    #     "TOTAL.TAXES.USD": "sum",
+    #     "RAISED_TAX_AMOUNT_USD": "sum"
+    # }).reset_index()
+    # st.dataframe(offices_grouped)
+
+    # st.write("**Importer Activity**")
+    # importer_grouped = df_filtered.groupby("IMPORTER.TIN").agg({
+    #     "CIF_USD_EQUIVALENT": "sum",
+    #     "QUANTITY": "sum",
+    #     "GROSS.WEIGHT": "sum",
+    #     "TOTAL.TAXES.USD": "sum",
+    #     "RAISED_TAX_AMOUNT_USD": "sum"
+    # }).reset_index()
+    # st.dataframe(importer_grouped)
 
 # Tab 3: Illicit Findings – Flagged Operations Analysis
 with tabs[2]:
