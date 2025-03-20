@@ -19,71 +19,49 @@ st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), u
 
 ### HEADER
 img = "images/DALLE-customs-portal_cut.jpg"
-st.image(img, use_container_width=True)
+st.image(img, use_column_width=True)  # Adjusted for compatibility
 title()
 
 ### SIDEBAR FILTERS
 st.sidebar.header("Filters")
 
-# Load and transform raw data
-df = load_data("data/import_data.csv")
-df = basic_trafo(df)
+@st.cache_data
+def load_and_transform():
+    # Load and transform raw data
+    df = load_data("data/import_data.csv")
+    df = basic_trafo(df)
+    # Ensure there are no missing dates: forward and backward fill
+    df['formatted_date'] = df['formatted_date'].ffill().bfill()
+    return df
 
-# Create a proper datetime column if not already present (assuming year,month,day exist)
-if 'date' not in df.columns:
-    df['date'] = pd.to_datetime(df[['year', 'month', 'day']], errors='coerce')
+df = load_and_transform()
 
-# Date range filter based on the dataset dates
-date_min = df['date'].min().date()
-date_max = df['date'].max().date()
+# Date filter
+date_min = df['formatted_date'].min()
+date_max = df['formatted_date'].max()
 selected_dates = st.sidebar.date_input("Select Date Range", [date_min, date_max])
-
-# Filter by Office
-office_options = sorted(df['OFFICE'].unique())
-selected_offices = st.sidebar.multiselect("Select Office(s)", options=office_options, default=office_options)
-
-# Filter by Importer TIN
-importer_options = sorted(df['IMPORTER.TIN'].unique())
-selected_importers = st.sidebar.multiselect("Select Importer(s)", options=importer_options, default=importer_options)
-
-# Filter by Tariff Code
-tariff_options = sorted(df['TARIFF.CODE'].unique())
-selected_tariffs = st.sidebar.multiselect("Select Tariff Code(s)", options=tariff_options, default=tariff_options)
-
-# Filter by Origin Code
-origin_options = sorted(df['ORIGIN.CODE'].unique())
-selected_origins = st.sidebar.multiselect("Select Origin Code(s)", options=origin_options, default=origin_options)
-
-# Apply sidebar filters to the data
-filtered_df = df[
-    (df['date'] >= pd.to_datetime(selected_dates[0])) &
-    (df['date'] <= pd.to_datetime(selected_dates[1])) &
-    (df['OFFICE'].isin(selected_offices)) &
-    (df['IMPORTER.TIN'].isin(selected_importers)) &
-    (df['TARIFF.CODE'].isin(selected_tariffs)) &
-    (df['ORIGIN.CODE'].isin(selected_origins))
+df_filtered = df[
+    (df['formatted_date'] >= pd.to_datetime(selected_dates[0])) &
+    (df['formatted_date'] <= pd.to_datetime(selected_dates[1]))
 ]
 
-# Optional: Choose a reference date for time-based comparisons
-today = st.sidebar.date_input("Reference Date", datetime.date(2014, 5, 25))
-df_today, df_pre_year, df_cur_year = today_filtering(filtered_df, today)
+# Office filter (if desired, can be omitted for performance)
+office_options = sorted(df_filtered['OFFICE'].unique())
+selected_offices = st.sidebar.multiselect("Select Office(s)", options=office_options, default=office_options)
+df_filtered = df_filtered[df_filtered['OFFICE'].isin(selected_offices)]
+
+# Reference date for time comparisons
+today_ref = st.sidebar.date_input("Reference Date", datetime.date(2014, 5, 25))
+df_today, df_pre_year, df_cur_year = today_filtering(df_filtered, today_ref)
 
 ### MAIN DASHBOARD TABS
-tabs = st.tabs([
-    "Commercial & Operational Info",
-    "Revenue Insights",
-    "Offices Activity",
-    "HS Codes Trends",
-    "Importer Activity",
-    "Illicit Findings"
-])
+tabs = st.tabs(["Dashboard", "Agg Analysis", "Illicit Findings"])
 
-# Tab 1: Commercial & Operational Information
+# Tab 1: Dashboard – Key Metrics and Global Trends
 with tabs[0]:
-    st.header("Commercial & Operational Information")
+    st.header("Dashboard")
     
-    # Metrics (totals)
-    st.subheader("Metrics")
+    st.subheader("Key Metrics")
     col1, col2, col3 = st.columns(3)
     columns = [col1, col2, col3]
     count = 0
@@ -100,52 +78,38 @@ with tabs[0]:
 
     st.markdown("---")
     
-    # Global trends: option to choose different periods
-    col1, col2 = st.columns(2)
-    with col1:
-        st.header("Global Trends")
-    with col2:
-        period_option = st.radio("Period",
-                                 options=['6 months', '12 months', 'vs. previews year'],
-                                 horizontal=True)
-    
-    # Main trends plots for CIF and TOTAL.TAXES.USD
+    st.subheader("Global Trends")
+    period_option = st.radio("Period", options=['6M', '12M', 'CW'], horizontal=True)
     for idx, var in enumerate(['CIF_USD_EQUIVALENT', 'TOTAL.TAXES.USD']):
-        if period_option == 'vs. previews year':
+        if period_option == 'CW':
             line_plot_cur_vs_pre(df_cur_year, df_pre_year, var, colors, idx)
         else:
-            line_plot(filtered_df, var, colors, idx, today, period=period_option)
+            line_plot(df_filtered, var, colors, idx, today_ref, period=period_option)
+
+# Tab 2: Aggregated Analysis – Top N Plots and Tables
+with tabs[1]:
+    st.header("Aggregated Analysis")
+    
+    # Top Offices by CIF USD
+    st.subheader("Top Offices by CIF (USD)")
+    top_n_offices = st.slider("Select Top N Offices", min_value=3, max_value=20, value=5, key="offices")
+    offices_top = df_filtered.groupby("OFFICE")["CIF_USD_EQUIVALENT"].sum().reset_index()
+    offices_top = offices_top.sort_values(by="CIF_USD_EQUIVALENT", ascending=False).head(top_n_offices)
+    offices_top = offices_top.set_index("OFFICE")
+    st.bar_chart(offices_top)
+
+    # Top Importers by CIF USD
+    st.subheader("Top Importers by CIF (USD)")
+    top_n_importers = st.slider("Select Top N Importers", min_value=3, max_value=20, value=5, key="importers")
+    importers_top = df_filtered.groupby("IMPORTER.TIN")["CIF_USD_EQUIVALENT"].sum().reset_index()
+    importers_top = importers_top.sort_values(by="CIF_USD_EQUIVALENT", ascending=False).head(top_n_importers)
+    importers_top = importers_top.set_index("IMPORTER.TIN")
+    st.bar_chart(importers_top)
     
     st.markdown("---")
-    
-    # Other trends: illicit findings, raised tax amount, quantity, and gross weight
-    trend_vars = ['illicit', 'RAISED_TAX_AMOUNT_USD', 'QUANTITY', 'GROSS.WEIGHT']
-    col1, col2 = st.columns(2)
-    columns = [col1, col2]
-    count = 0
-    for idx, var in enumerate(trend_vars, start=2):
-        with columns[count]:
-            if period_option == 'vs. previews year':
-                line_plot_cur_vs_pre(df_cur_year, df_pre_year, var, colors, idx)
-            else:
-                line_plot(filtered_df, var, colors, idx, today, period=period_option)
-        count += 1
-        if count >= 2:
-            count = 0
-
-# Tab 2: Revenue Insights
-with tabs[1]:
-    st.header("Revenue Insights")
-    st.subheader("Revenue Trends Over Time")
-    revenue_vars = ['TOTAL.TAXES.USD', 'RAISED_TAX_AMOUNT_USD']
-    for idx, var in enumerate(revenue_vars):
-        line_plot(filtered_df, var, colors, idx, today, period='12 months')
-
-# Tab 3: Offices Activity
-with tabs[2]:
-    st.header("Offices Activity")
-    # Aggregate metrics by OFFICE
-    offices_grouped = filtered_df.groupby("OFFICE").agg({
+    st.subheader("Detailed Aggregated Tables")
+    st.write("**Offices Activity**")
+    offices_grouped = df_filtered.groupby("OFFICE").agg({
         "CIF_USD_EQUIVALENT": "sum",
         "QUANTITY": "sum",
         "GROSS.WEIGHT": "sum",
@@ -153,23 +117,9 @@ with tabs[2]:
         "RAISED_TAX_AMOUNT_USD": "sum"
     }).reset_index()
     st.dataframe(offices_grouped)
-
-# Tab 4: HS Codes Trends (using Tariff Codes)
-with tabs[3]:
-    st.header("HS Codes Trends")
-    hs_grouped = filtered_df.groupby("TARIFF.CODE").agg({
-        "CIF_USD_EQUIVALENT": "sum",
-        "QUANTITY": "sum",
-        "GROSS.WEIGHT": "sum",
-        "TOTAL.TAXES.USD": "sum",
-        "RAISED_TAX_AMOUNT_USD": "sum"
-    }).reset_index()
-    st.dataframe(hs_grouped)
-
-# Tab 5: Importer Activity
-with tabs[4]:
-    st.header("Importer Activity")
-    importer_grouped = filtered_df.groupby("IMPORTER.TIN").agg({
+    
+    st.write("**Importer Activity**")
+    importer_grouped = df_filtered.groupby("IMPORTER.TIN").agg({
         "CIF_USD_EQUIVALENT": "sum",
         "QUANTITY": "sum",
         "GROSS.WEIGHT": "sum",
@@ -178,14 +128,13 @@ with tabs[4]:
     }).reset_index()
     st.dataframe(importer_grouped)
 
-# Tab 6: Illicit Findings
-with tabs[5]:
+# Tab 3: Illicit Findings – Flagged Operations Analysis
+with tabs[2]:
     st.header("Illicit Findings")
-    # Assuming the illicit column flags non-compliant operations (e.g., True/False)
-    illicit_df = filtered_df[filtered_df['illicit'] == True]
+    illicit_df = df_filtered[df_filtered['illicit'] == True]
     if not illicit_df.empty:
         st.dataframe(illicit_df)
-        st.subheader("Trend of Raised Tax Amount for Illicit Operations")
-        line_plot(illicit_df, 'RAISED_TAX_AMOUNT_USD', colors, 0, today, period='12 months')
+        st.subheader("Trend: Raised Tax Amount for Illicit Operations")
+        line_plot(illicit_df, 'RAISED_TAX_AMOUNT_USD', colors, 0, today_ref, period='12M')
     else:
         st.info("No illicit findings in the selected period and filters.")

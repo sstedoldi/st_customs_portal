@@ -47,14 +47,26 @@ def total_metric(df_pre, df, col, name, scale, unit):
                      value="{:,.0f}".format(total_cur), 
                      delta="{:.2%}".format(delta))
 
+def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None, st_obj=st):
+    
+    df_grouped = df.groupby(group_col)[num_col].sum().reset_index()
+    
+    df_grouped = df_grouped.sort_values(by=num_col, ascending=False).head(top_n)
+    
+    df_grouped = df_grouped.set_index(group_col)
+   
+    if title:
+        st_obj.subheader(title)
+    
+    return st_obj.bar_chart(df_grouped)
 
-def line_plot(df, var, colors, color_id, today, period='6 months'): #current vs. previews
+def line_plot(df, var, colors, color_id, today, period='6M'):
     today = pd.to_datetime(today)
-    if period=='6 months':
+    if period=='6M':
         ini_day = (today - pd.DateOffset(months=6))
         ini_day = pd.to_datetime(ini_day)
         df_period = df.loc[(df['formatted_date'] >= ini_day) & (df['formatted_date'] <= today)].reset_index(drop=True)
-    elif period=='12 months':
+    elif period=='12M':
         ini_day = (today - pd.DateOffset(months=12))
         ini_day = pd.to_datetime(ini_day)
         df_period = df.loc[(df['formatted_date'] >= ini_day) & (df['formatted_date'] <= today)].reset_index(drop=True)
@@ -115,9 +127,9 @@ def line_plot_cur_vs_pre(df, df_pre, var, colors, color_id): #current vs. previe
 
 def dataframe_with_selections(df_sample):
     df_with_selections = df_sample.copy()
+
     df_with_selections.insert(0, "Seleccion", False)
 
-    # Get dataframe row-selections from user with st.data_editor
     edited_df = st.data_editor(
         df_with_selections,
         hide_index=True,
@@ -125,6 +137,6 @@ def dataframe_with_selections(df_sample):
         disabled=df_sample.columns,
     )
 
-    # Filter the dataframe using the temporary column, then drop the column
     selected_rows = edited_df[edited_df.Seleccion]
+
     return selected_rows.drop('Seleccion', axis=1)
