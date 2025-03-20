@@ -88,8 +88,9 @@ if st.button("Predict HS Code"):
                         hs_info = pred.get("hs_info", [])
                         if hs_info:
                             st.write("**HS Code Information:**")
-                            for info in hs_info:
-                                st.write(f"- {info}")
+                            # for info in hs_info:
+                            #     st.write(f"- {info}")
+                            st.write(f"{hs_info}")
                         st.markdown("---")
                 else:
                     st.info("No predictions were returned.")
