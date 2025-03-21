@@ -47,18 +47,39 @@ def total_metric(df_pre, df, col, name, scale, unit):
                      value="{:,.0f}".format(total_cur), 
                      delta="{:.2%}".format(delta))
 
-def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None, st_obj=st):
+# def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None):
     
+#     df_grouped = df.groupby(group_col)[num_col].sum().reset_index()
+    
+#     df_grouped = df_grouped.sort_values(by=num_col, ascending=False).head(top_n)
+    
+#     df_grouped = df_grouped.set_index(group_col)
+   
+#     if title:
+#         st.subheader(title)
+    
+#     return st.bar_chart(df_grouped)
+
+def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None):
+
     df_grouped = df.groupby(group_col)[num_col].sum().reset_index()
-    
+
     df_grouped = df_grouped.sort_values(by=num_col, ascending=False).head(top_n)
     
-    df_grouped = df_grouped.set_index(group_col)
-   
-    if title:
-        st_obj.subheader(title)
+    trace = go.Bar(
+        x=df_grouped[group_col],
+        y=df_grouped[num_col]
+    )
     
-    return st_obj.bar_chart(df_grouped)
+    layout = go.Layout(
+        title=title if title else "",
+        xaxis=dict(title=group_col),
+        yaxis=dict(title=num_col, range=[0, df_grouped[num_col].max()*1.1])
+    )
+    
+    fig = go.Figure(data=[trace], layout=layout)
+    
+    return st.plotly_chart(fig, use_container_width=True)
 
 def line_plot(df, var, colors, color_id, today, period='6M'):
     today = pd.to_datetime(today)

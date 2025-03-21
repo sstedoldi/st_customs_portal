@@ -110,12 +110,19 @@ with tabs[1]:
             group_col=group_col,
             num_col=selected_num_col,
             top_n=top_n,
-            title=f"Top {top_n} {group_col} by {selected_num_col}"
+            title=f"Top N {group_col} by {selected_num_col}"
         )
 
     st.markdown("---")
     group_col = "IMPORTER.TIN"
     st.subheader(group_col)
+
+    print(df_filtered.info())
+    print(df_filtered.head())
+    print(df_filtered[group_col].value_counts())
+    print(df.groupby(group_col)['CIF_USD_EQUIVALENT'].sum().reset_index())
+
+
     col_plot, col_controls = st.columns([3, 1])
 
     with col_controls:
@@ -128,7 +135,7 @@ with tabs[1]:
             group_col=group_col,
             num_col=selected_num_col,
             top_n=top_n,
-            title=f"Top {top_n} {group_col} by {selected_num_col}"
+            title=f"Top 5 {group_col} by {selected_num_col}"
         )
 
     # st.markdown("---")
