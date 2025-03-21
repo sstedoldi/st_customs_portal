@@ -47,19 +47,6 @@ def total_metric(df_pre, df, col, name, scale, unit):
                      value="{:,.0f}".format(total_cur), 
                      delta="{:.2%}".format(delta))
 
-# def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None):
-    
-#     df_grouped = df.groupby(group_col)[num_col].sum().reset_index()
-    
-#     df_grouped = df_grouped.sort_values(by=num_col, ascending=False).head(top_n)
-    
-#     df_grouped = df_grouped.set_index(group_col)
-   
-#     if title:
-#         st.subheader(title)
-    
-#     return st.bar_chart(df_grouped)
-
 def vbarplot_top_cat(df, group_col, num_col, top_n=5, title=None):
 
     df_grouped = df.groupby(group_col)[num_col].sum().reset_index()

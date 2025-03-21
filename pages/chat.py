@@ -1,5 +1,5 @@
 ################################
-####### Chatbot ########
+####### RAG CHATBOT ########
 ################################
 
 # app
@@ -12,11 +12,15 @@ import time
 import requests
 # configurations
 from modules.gral_config import page_config
+from modules.gral_config import back_url_config
 
 # processing
 import pandas as pd
 import numpy as np
 pd.options.display.float_format = '{:.2f}'.format
+from modules.chat_llm import semantic_search, ask_question, \
+                             index_documents, get_index_history, \
+                             response_generator
 # local components
 from modules.gral_comp import title
 # local styles
@@ -39,48 +43,7 @@ st.header("Assistant Bot")
 
 ################################
 # Base URL for the Flask app
-BASE_URL = 'http://localhost:8080'
-
-# Function to call Flask backend for semantic search
-def semantic_search(query):
-    response = requests.post(f"{BASE_URL}/sem_search", json={"query": query})
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Error in semantic search: {response.json().get('error', 'Unknown error')}")
-        return None
-
-# Function to call Flask backend for question answering
-def ask_question(query):
-    response = requests.post(f"{BASE_URL}/answer", json={"query": query})
-    if response.status_code == 200:
-        return response.json()['response']
-    else:
-        st.error(f"Error in question answering: {response.json().get('error', 'Unknown error')}")
-        return None
-
-# Function to call Flask backend for indexing documents
-def index_documents(source_type, source_path, doc_title, additional_info, comments):
-    response = requests.post(f"{BASE_URL}/index", json={
-        "source_type": source_type,
-        "source_path": source_path,
-        "doc_title": doc_title,
-        "additional_info": additional_info,
-        "comments": comments,
-    })
-    if response.status_code == 200:
-        st.success("Indexing completed successfully!")
-    else:
-        st.error(f"Error in indexing: {response.json().get('error', 'Unknown error')}")
-
-# Function to get indexing history from Flask backend
-def get_index_history():
-    response = requests.get(f"{BASE_URL}/index_history")
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Error retrieving indexing history: {response.json().get('error', 'Unknown error')}")
-        return []
+rag_url = back_url_config["rag_url"]
 
 # Initialize chat history in session state
 if "messages" not in st.session_state:
@@ -92,16 +55,19 @@ def response_generator(response_text):
         yield word + " "
         time.sleep(0.05)
 
-# Create tabs for Chatbot, Semantic Search, Index Documents, and Indexing History
+################################
+# TABS
+################################
+
 chat_tab, search_tab, index_tab, history_tab = st.tabs([
     "Chatbot", "Semantic Search", "Index Documents", "Indexing History"
 ])
 
 ################################
-# Chatbot Tab
+# CHATBOT
 with chat_tab:
     st.subheader("Chatbot")
-    st.markdown("Ask me about customs :female-police-officer:")
+    st.markdown("Ask about customs matters and get answers")
 
     # Display existing messages FIRST
     for message in st.session_state.messages:
@@ -116,7 +82,7 @@ with chat_tab:
         st.session_state.messages.append({"role": "user", "content": prompt})
 
         # Use question answering for chatbot queries
-        response_text = ask_question(prompt)
+        response_text = ask_question(prompt, rag_url=rag_url)
 
         # Display the assistant's response with a stream-like effect
         with st.chat_message("assistant"):
@@ -134,7 +100,7 @@ with chat_tab:
         st.session_state.messages.append({"role": "assistant", "content": response_text})
 
 ################################
-# Semantic Search Tab
+# SEMANTIC SEARCH
 with search_tab:
     st.subheader("Semantic Search")
     st.markdown("Enter a query to find documentation :gear:")
@@ -142,7 +108,7 @@ with search_tab:
     search_query = st.text_input("Search Query", key="semantic_search_query")
     if st.button("Search", key="semantic_search_button"):
         if search_query:
-            response_data = semantic_search(search_query)
+            response_data = semantic_search(search_query, rag_url=rag_url)
             if response_data:
                 rows = []
                 # Iterate over each result returned from the backend
@@ -190,7 +156,7 @@ with search_tab:
             st.warning("Please enter a search query.")
 
 ################################
-# Index Documents Tab
+# INDEX DOCUMENTS
 with index_tab:
     st.subheader("Index Documents")
     st.markdown("Feed the knowledge database :robot_face:")
@@ -201,17 +167,22 @@ with index_tab:
     comments = st.text_input("Enter the other comments")
     if st.button("Index"):
         if source_path:
-            index_documents(source_type, source_path, doc_title, additional_info, comments)
+            index_documents(source_type, 
+                            source_path, 
+                            doc_title, 
+                            additional_info, 
+                            comments,
+                            rag_url=rag_url)
         else:
             st.warning("Please provide a valid document path or URL")
 
 ################################
-# Indexing History Tab
+# INDEXING HISTORY
 with history_tab:
     st.subheader("Indexing History")
     st.markdown("Review the indexing history :floppy_disk:")
     if st.button("Refresh History"):
-        history_data = get_index_history()
+        history_data = get_index_history(rag_url=rag_url)
         if history_data:
             df = pd.DataFrame(history_data)
             if "indexed_date" in df.columns:

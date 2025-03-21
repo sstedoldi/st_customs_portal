@@ -31,34 +31,27 @@ def prediction_scores(data, real_col, pred_col):
     with col1:
         st.write("Sample shape: ", data.shape)
         st.dataframe(scores.T)
-        show_formulas = st.checkbox("See formulas", value=False)
 
-    # Calculate confusion matrix manually
-    conf_matrix = pd.DataFrame(
-        {
-            'Predicted Fraud': [true_positive, false_positive],
-            'Predicted Legal': [false_negative, true_negative]
-        },
-        index=['Real Fraud', 'Real Legal']
-    )
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            st.latex(r"Accuracy: \frac{TP+TN}{TP+TN+FP+FN}", help="Global score")
+            st.latex(r"Precision: \frac{TP}{TP+FP}", help="Non-productive control score")
+        with col_f2:
+            st.latex(r"Recall: \frac{TP}{TP+FN}", help="Non-detected fraud score")
+            st.latex(r"F1: \frac{2*Pre*Rec}{Pre+Rec}", help="Harmonic mean of Precision and Recall")
+    
     with col2:
+        # Calculate confusion matrix manually
+        conf_matrix = pd.DataFrame(
+            {
+                'Predicted Fraud': [true_positive, false_positive],
+                'Predicted Legal': [false_negative, true_negative]
+            },
+            index=['Real Fraud', 'Real Legal']
+        )
         # Create confusion matrix plot
         st.write("Confusion Matrix")
         fig, ax = plt.subplots()
         sns.heatmap(conf_matrix, annot=True, fmt='d', cbar=False, ax=ax)#, cmap='plasma')
         st.pyplot(fig)
     
-    if show_formulas:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.latex(r"Accuracy: \frac{TP+TN}{TP+TN+FP+FN}", help="General score")
-            st.latex(r"Precision: \frac{TP}{TP+FP}", help="Non-productive control score")
-        with col2:
-            st.latex(r"Recall: \frac{TP}{TP+FN}", help="Non-detected fraud score")
-            st.latex(r"F1: \frac{2*Pre*Rec}{Pre+Rec}", help="Harmonic mean of Precision and Recall")
-        # help='''
-        # TP: Predicted Fraud and Real Fraud,
-        # TN: Predicted Legitimate and Real Legitimate,
-        # FP: Predicted Fraud and Real Legitimate,
-        # FN: Predicted Legitimate and Real Fraud.
-        # '''

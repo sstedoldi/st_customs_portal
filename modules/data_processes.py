@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 
 ## reading raw data
-@st.cache_data
+@st.cache_data(show_spinner="Loading raw data")
 def load_data(data_path, index=None):
     print("loading data from: ", data_path)
     dtypes_dict = {
@@ -19,7 +19,7 @@ def load_data(data_path, index=None):
     return df
 
 ## basic transformations
-@st.cache_data
+@st.cache_data(show_spinner="Basic data transformations")
 def basic_trafo(df):
     print("basic transformations")
     # HS codes
@@ -41,7 +41,7 @@ def basic_trafo(df):
     return df
 
 ## today filtering
-@st.cache_data
+@st.cache_data(show_spinner="Today filtering")
 def today_filtering(df, today):
     df_today = df.loc[(df.formatted_date.dt.date <= today)]
     pre_year = today.year - 1
@@ -50,7 +50,3 @@ def today_filtering(df, today):
     df_cur_year = df.loc[(df.formatted_date.dt.date < today) & (df.year > pre_year)].reset_index(drop=True)
 
     return df_today, df_pre_year, df_cur_year
-
-# class Cleaner():
-#     def __init__(self):
-#         pass

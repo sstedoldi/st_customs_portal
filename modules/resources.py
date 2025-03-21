@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 
 # model metadata
-@st.cache_resource
+@st.cache_resource(show_spinner="Requesting model metadata")
 def post_meta_request(endpoint):
     print("requesting model metadata")
     try:
@@ -18,7 +18,7 @@ def post_meta_request(endpoint):
         return {'error': 'Connection Error'}
     
 # batch processing
-@st.cache_resource
+@st.cache_resource(show_spinner="Batch inference under process")
 def batch_post_request(data, endpoint):
     print("requesting batch prediction")
     try:
@@ -32,7 +32,7 @@ def batch_post_request(data, endpoint):
         return {'error': 'Connection Error'}
     
 # single processing
-@st.cache_resource
+@st.cache_resource(show_spinner="Single inference under process")
 def single_post_request(data, endpoint):
     print("requesting single prediction")
     try:

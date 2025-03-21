@@ -26,7 +26,7 @@ title()
 ### SIDEBAR FILTERS
 st.sidebar.header("Filters")
 
-@st.cache_data
+@st.cache_data(show_spinner="Loading and transforming home data")
 def load_and_transform():
     # Load and transform raw data
     df = load_data("data/import_data.csv")
@@ -116,12 +116,6 @@ with tabs[1]:
     st.markdown("---")
     group_col = "IMPORTER.TIN"
     st.subheader(group_col)
-
-    print(df_filtered.info())
-    print(df_filtered.head())
-    print(df_filtered[group_col].value_counts())
-    print(df.groupby(group_col)['CIF_USD_EQUIVALENT'].sum().reset_index())
-
 
     col_plot, col_controls = st.columns([3, 1])
 
