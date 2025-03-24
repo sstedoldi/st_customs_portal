@@ -56,6 +56,7 @@ df_sample = load_data("data/sample_import_data.csv", index=0)
 risk_url = back_url_config["risk_url"]
 meta_endpoint = os.path.join(risk_url, 'metadata')
 metadata = post_meta_request(meta_endpoint)
+print(metadata)
 
 if metadata:
     # Create a DataFrame from metadata and parse shape information
@@ -282,7 +283,7 @@ with on_demand_tab:
     st.markdown("Use the risk model in new items, evaluating its on-demand capabilities")
     predict_endpoint = os.path.join(risk_url, 'predict')
     # Use a subset of the sample for inspection results
-    ddt_result = df_sample[['illicit', 'RAISED_TAX_AMOUNT_USD']]
+    ddt_result = df_sample[['illicit', 'RAISED_TAX_AMOUNT_USD']].astype(str)
     selection = dataframe_with_selections(df_sample)
 
     if st.button('Predict selection'):
@@ -306,7 +307,7 @@ with on_demand_tab:
                 st.metric(label='Risk %', value=round(results['Risk'], 2))
                 st.metric(label='Category', value=results['Category'])
             with res_col:
-                st.text('Inspection results')
+                st.text('Inspection result')
                 st.write(ddt_result.loc[index].T)
 
             # Process explanation: compute feature importance and display top 5 positive and negative variables
@@ -318,11 +319,14 @@ with on_demand_tab:
             neg_importance['relevance'] = -neg_importance['relevance']
             neg_importance['%'] = round(100 * neg_importance['relevance'] / neg_importance['relevance'].sum(), 0)
             pos_vars, neg_vars = st.columns(2)
+
             with pos_vars:
                 st.text('Risky variables ⚠️')
-                st.dataframe(pos_importance['%'].head(5))
+                pos_top5 = pos_importance['%'].astype(str).head(5)
+                st.dataframe(pos_top5)
             with neg_vars:
                 st.text('Safe variables 👍')
-                st.dataframe(neg_importance['%'].head(5))
+                neg_top5 = neg_importance['%'].astype(str).head(5)
+                st.dataframe(neg_top5)
 
             st.markdown("""---""")
