@@ -256,24 +256,25 @@ with clasi_analysis_tab:
     st.subheader("Classification analysis")
     st.markdown("Get a classification report using an AI enhanced goods description")
 
-    pred_from_col, load_adv_col = st.columns((0.85, 0.15))
+    with st.form("clas_pred_form", clear_on_submit=False, border=False):
+        desc_col, load_col = st.columns((0.85, 0.15))
 
-    with pred_from_col:
-        with st.form("clas_pred_form", clear_on_submit=False, border=False):
-            if st.session_state.clas_description:
-                description = st.text_input("Product Description", value=st.session_state.clas_description, key="clas_desc_input")
-            else:
-                description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")
-            topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="clas_topn_input")
-            submitted = st.form_submit_button("Predict :robot_face:", type="primary")
+        with desc_col:
+                if st.session_state.clas_description:
+                    description = st.text_input("Product Description", value=st.session_state.clas_description, key="clas_desc_input")
+                else:
+                    description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")
+        with load_col:
+            load_desc = st.button("Load", key="load_desc", type="secondary",
+                                help="Load the improved description from the previous step", 
+                                disabled=not st.session_state.imp_description,
+                                use_container_width=True)
+            if load_desc:
+                st.session_state.clas_description = st.session_state.imp_description
+                    
+        topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="clas_topn_input")
+        submitted = st.form_submit_button("Predict :robot_face:", type="primary")
 
-    with load_adv_col:
-        load_desc = st.button("Load", key="load_desc", type="primary",
-                              help="Load the improved description from the previous step", 
-                              disabled=not st.session_state.imp_description,
-                              use_container_width=True)
-        if load_desc:
-            st.session_state.clas_description = st.session_state.imp_description
 
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
