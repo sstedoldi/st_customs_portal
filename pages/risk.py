@@ -126,8 +126,8 @@ def predict_batch(df_sample, batch_size, sample_size=None):
 # TABS
 ################################
 
-tabs = st.tabs(["Risk Management", "Model Card", "On-demand Risk"])
-risk_tab, model_card_tab, on_demand_tab = tabs
+tabs = st.tabs(["Risk Management", "On-demand Risk", "Model Card"])
+risk_tab, on_demand_tab, model_card_tab = tabs
 
 ################################
 # RISK MANAGEMENT
@@ -249,34 +249,6 @@ with risk_tab:
                     delta="{:.2%}".format(delta))
 
 ################################
-# MODEL CARD
-with model_card_tab:
-    if metadata:
-        st.subheader("Model Card :robot_face:")
-        st.markdown("Review the risk model metadata and its expected performance")
-        col_card, col_data = st.columns(2)
-        with col_card:
-            st.markdown("General Metadata")
-            st.write(df_meta[basic_meta_to_show].rename(columns=new_names).T)
-        with col_data:
-            st.markdown("Development and Historical Data")
-            st.write(df_meta[more_meta_to_show].T)
-
-        st.write("Training Timestamp")
-        col_time, _ = st.columns(2)
-        with col_time:
-            train_date, train_time = st.columns(2)
-            with train_date:
-                st.write(df_meta['Training timestamp'].iloc[0].split('_')[0])
-            with train_time:
-                st.write(df_meta['Training timestamp'].iloc[0].split('_')[1].replace('-', ':'))
-
-
-        prediction_scores(df_with_batch_pred_new, 'illicit', 'prediction')
-    else:
-        st.error("No metadata available to display")
-
-################################
 # ON-DEMAND RISK
 with on_demand_tab:
     st.subheader("On-demand tests")
@@ -330,3 +302,31 @@ with on_demand_tab:
                 st.dataframe(neg_top5)
 
             st.markdown("""---""")
+
+################################
+# MODEL CARD
+with model_card_tab:
+    if metadata:
+        st.subheader("Model Card :robot_face:")
+        st.markdown("Review the risk model metadata and its expected performance")
+        col_card, col_data = st.columns(2)
+        with col_card:
+            st.markdown("General Metadata")
+            st.write(df_meta[basic_meta_to_show].rename(columns=new_names).T)
+        with col_data:
+            st.markdown("Development and Historical Data")
+            st.write(df_meta[more_meta_to_show].T)
+
+        st.write("Training Timestamp")
+        col_time, _ = st.columns(2)
+        with col_time:
+            train_date, train_time = st.columns(2)
+            with train_date:
+                st.write(df_meta['Training timestamp'].iloc[0].split('_')[0])
+            with train_time:
+                st.write(df_meta['Training timestamp'].iloc[0].split('_')[1].replace('-', ':'))
+
+
+        prediction_scores(df_with_batch_pred_new, 'illicit', 'prediction')
+    else:
+        st.error("No metadata available to display")
