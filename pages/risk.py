@@ -158,7 +158,7 @@ with risk_tab:
 
     with col_curr:
 
-        st.subheader("Current metrics :female-detective:")
+        st.markdown("Current metrics :female-detective:")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -206,7 +206,7 @@ with risk_tab:
 
     with col_plusai:
         
-        st.subheader("New metrics + AI model :robot_face:")
+        st.markdown("#### New metrics + AI model :robot_face:")
 
         col1, col2 = st.columns(2)
         with col1:

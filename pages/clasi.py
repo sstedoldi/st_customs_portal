@@ -65,9 +65,8 @@ clasi_url = back_url_config["clasi_url"]
 ################################
 
 simple_clasi_tab, advanced_clasi_tab, clasi_analysis_tab, model_card_tab = st.tabs([
-    "Simple Classification", "Advanced Classification", "Classification analysis", "Model Card"
+    "Simple Classification", "Description Improvement", "Classification analysis", "Model Card"
 ])
-
 
 ################################
 # SIMPLE CLASSI
@@ -86,7 +85,7 @@ with simple_clasi_tab:
     with st.form("simple_pred_form", border=False):
         description = st.text_input("Product Description", value="pure-bred breeding horses", key="simple_desc_input")
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="simple_topn_input")
-        submitted = st.form_submit_button("Predict HS Code")
+        submitted = st.form_submit_button("Predict :robot_face:", type="primary")
 
     # Only run prediction if the form is submitted.
     if submitted and description.strip():
@@ -131,20 +130,21 @@ if "adv_candidate_hs_codes" not in st.session_state:
     st.session_state.adv_candidate_hs_codes = None
 if "adv_description" not in st.session_state:
     st.session_state.adv_description = ""
+if "imp_description" not in st.session_state:
+    st.session_state.imp_description = ""
 if "answers_extention" not in st.session_state:
     st.session_state.answers_extention = 0
 if "qa_pairs" not in st.session_state:
     st.session_state.qa_pairs = []
 
 with advanced_clasi_tab:
-    st.subheader("Advanced Classification")
-    st.markdown("Enter a product description to get predicted HS Codes and work with its tarif classification")
+    st.subheader("Description Improvement")
+    st.markdown("Work out the goods description using AI generated questions coming from HS texts and EN")
 
-    # Prediction form: always visible.
-    with st.form("prediction_form", clear_on_submit=False, border=False):
+    with st.form("adv_pred_form", clear_on_submit=False, border=False):
         description = st.text_input("Product Description", value="pure-bred breeding horses", key="adv_desc_input")
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="adv_topn_input")
-        submitted = st.form_submit_button("Predict HS Code")
+        submitted = st.form_submit_button("Predict :robot_face:", type="primary")
 
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
@@ -199,25 +199,25 @@ with advanced_clasi_tab:
                 try:
                     with st.spinner("Fetching questions for candidate HS Codes..."):
                         q_response = requests.post(f"{clasi_url}/questions_en_desc", json=question_payload)
-                    if q_response.status_code == 200:
-                        q_data = q_response.json()
-                        questions = q_data.get("questions", [])
-                        if questions:
-                            st.markdown("#### Questions for Improving Description")
-                            # Use a form to gather Q&A
-                            with st.form("qa_form", clear_on_submit=False, border=False):
-                                qa_pairs = []
-                                answer_len = 0
-                                for i, question in enumerate(questions):
-                                    st.write(f"{i+1}. {question}")
-                                    answer = st.text_input("Answer", key=f"answer_{i}", label_visibility="collapsed")
-                                    answer_len += len(answer)
-                                    qa_pairs.append({"question": question, "answer": answer})
-                                improve_submitted = st.form_submit_button("Improve Description")
+                        if q_response.status_code == 200:
+                            q_data = q_response.json()
+                            questions = q_data.get("questions", [])
+                            if questions:
+                                st.markdown("#### Questions for Improving Description")
+                                # Use a form to gather Q&A
+                                with st.form("qa_form", clear_on_submit=False, border=False):
+                                    qa_pairs = []
+                                    answer_len = 0
+                                    for i, question in enumerate(questions):
+                                        st.write(f"{i+1}. {question}")
+                                        answer = st.text_input("Answer", key=f"answer_{i}", label_visibility="collapsed")
+                                        answer_len += len(answer)
+                                        qa_pairs.append({"question": question, "answer": answer})
+                                    improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary")
+                            else:
+                                st.info("No questions available for the candidate HS Codes.")
                         else:
-                            st.info("No questions available for the candidate HS Codes.")
-                    else:
-                        st.error(f"Error fetching questions: {q_response.text}")
+                            st.error(f"Error fetching questions: {q_response.text}")
                 except Exception as q_e:
                     st.error(f"An error occurred while fetching questions: {q_e}")
 
@@ -233,6 +233,7 @@ with advanced_clasi_tab:
                     if imp_response.status_code == 200:
                         imp_data = imp_response.json()
                         new_desc = imp_data.get("new_description", "")
+                        st.session_state.imp_description = new_desc
                         st.success(new_desc)
                     else:
                         st.error(f"Error {imp_response.status_code}: {imp_response.text}")
@@ -243,12 +244,55 @@ with advanced_clasi_tab:
 
 ################################
 # CLASSI ANALYSIS
+# Initialize simple classi session state variables
+if "clas_predictions" not in st.session_state:
+    st.session_state.clas_predictions = None
+if "clas_candidate_hs_codes" not in st.session_state:
+    st.session_state.clas_candidate_hs_codes = None
+if "clas_description" not in st.session_state:
+    st.session_state.clas_description = ""
+
 with clasi_analysis_tab:
     st.subheader("Classification analysis")
-    st.markdown("Improve the goods description using legal text and HS EN")
+    st.markdown("Get a classification report using an AI enhanced goods description")
 
-    st.markdown("---")
-    st.markdown("Get a classification analysis using AI models")
+    pred_from_col, load_adv_col = st.columns((0.85, 0.15))
+
+    with pred_from_col:
+        with st.form("clas_pred_form", clear_on_submit=False, border=False):
+            if st.session_state.clas_description:
+                description = st.text_input("Product Description", value=st.session_state.clas_description, key="clas_desc_input")
+            else:
+                description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")
+            topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="clas_topn_input")
+            submitted = st.form_submit_button("Predict :robot_face:", type="primary")
+
+    with load_adv_col:
+        load_desc = st.button("Load", key="load_desc", type="primary",
+                              help="Load the improved description from the previous step", 
+                              disabled=not st.session_state.imp_description,
+                              use_container_width=True)
+        if load_desc:
+            st.session_state.clas_description = st.session_state.imp_description
+
+    # If the prediction form is submitted and the description is not empty.
+    if submitted and description.strip():
+        st.session_state.clas_description = description
+        payload = {"description": description, "topn": topn}
+
+        try:
+            with st.spinner("Predicting HS Codes..."):
+                response = requests.post(f"{clasi_url}/predict_info", json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                predictions = data.get("predictions", [])
+                st.session_state.adv_predictions = predictions 
+            else:
+                st.error(f"Error {response.status_code}: {response.text}")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+    elif submitted and not description.strip():
+        st.warning("Please enter a product description.")
 
 ################################
 

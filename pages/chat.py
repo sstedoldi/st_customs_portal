@@ -67,7 +67,7 @@ chat_tab, search_tab, index_tab, history_tab = st.tabs([
 # CHATBOT
 with chat_tab:
     st.subheader("Chatbot")
-    st.markdown("Ask about customs matters and get answers")
+    st.markdown("Ask about customs matters and get answers :robot_face:")
 
     # Display existing messages FIRST
     for message in st.session_state.messages:
@@ -103,10 +103,10 @@ with chat_tab:
 # SEMANTIC SEARCH
 with search_tab:
     st.subheader("Semantic Search")
-    st.markdown("Enter a query to find documentation :gear:")
+    st.markdown("Enter a query to find documentation in the knowledge base")
     
     search_query = st.text_input("Search Query", key="semantic_search_query")
-    if st.button("Search", key="semantic_search_button"):
+    if st.button("Search :mag_right:", key="semantic_search_button", type="primary"):
         if search_query:
             response_data = semantic_search(search_query, rag_url=rag_url)
             if response_data:
@@ -159,13 +159,13 @@ with search_tab:
 # INDEX DOCUMENTS
 with index_tab:
     st.subheader("Index Documents")
-    st.markdown("Feed the knowledge database :robot_face:")
+    st.markdown("Feed the knowledge database with proper and relevant documentation")
     source_type = st.selectbox("Source Type", ["pdf", "webpage", "directory"])
     source_path = st.text_input("Enter the document path or URL")
     doc_title = st.text_input("Enter the document title")
     additional_info  = st.text_input("Enter additional information")
     comments = st.text_input("Enter the other comments")
-    if st.button("Index"):
+    if st.button("Index :gear:", type="primary"):
         if source_path:
             index_documents(source_type, 
                             source_path, 
@@ -180,8 +180,8 @@ with index_tab:
 # INDEXING HISTORY
 with history_tab:
     st.subheader("Indexing History")
-    st.markdown("Review the indexing history :floppy_disk:")
-    if st.button("Refresh History"):
+    st.markdown("Review the indexing history of the knowledge base")
+    if st.button("Refresh :floppy_disk:", type="primary"):
         history_data = get_index_history(rag_url=rag_url)
         if history_data:
             df = pd.DataFrame(history_data)
