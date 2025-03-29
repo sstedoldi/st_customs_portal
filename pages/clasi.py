@@ -5,11 +5,11 @@
 # app
 import streamlit as st
 # general
-# import os
-# import datetime
-# import random
-import time
+import re
+import datetime
 import requests
+# import random
+# import os
 # configutations
 from modules.gral_config import page_config, back_url_config
 # recourses
@@ -233,8 +233,11 @@ with advanced_clasi_tab:
                     if imp_response.status_code == 200:
                         imp_data = imp_response.json()
                         new_desc = imp_data.get("new_description", "")
-                        st.session_state.imp_description = new_desc
                         st.success(new_desc)
+                        match = re.search(r'"(.*)"', new_desc)
+                        if match:
+                            new_desc = match.group(1)
+                        st.session_state.imp_description = new_desc
                     else:
                         st.error(f"Error {imp_response.status_code}: {imp_response.text}")
                 except Exception as imp_e:
@@ -251,30 +254,39 @@ if "clas_candidate_hs_codes" not in st.session_state:
     st.session_state.clas_candidate_hs_codes = None
 if "clas_description" not in st.session_state:
     st.session_state.clas_description = ""
+if "clas_report" not in st.session_state:
+    st.session_state.clas_report = ""
+
+def report_completition(description, topn, report):
+    date_time = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    report_out = f"""**Description analyzed** {description} \n\n 
+                **{topn} candidates HS06 codes** \n\n 
+                **Date**: {date_time} \n\n
+                **Classification Report**:  {report}
+                """
+    return report_out, date_time
 
 with clasi_analysis_tab:
     st.subheader("Classification analysis")
-    st.markdown("Get a classification report using an AI enhanced goods description")
+    desc_col, load_col = st.columns((0.85, 0.15))
+    with desc_col:  
+        st.markdown("Get a classification report using an AI enhanced goods description")
+    with load_col:
+        load_desc = st.button("Load :arrow_down:", key="load_desc", type="secondary",
+                            help="Load the improved description from the previous step", 
+                            disabled=not st.session_state.imp_description,
+                            use_container_width=True)
+        if load_desc:
+            st.session_state.clas_description = st.session_state.imp_description
 
     with st.form("clas_pred_form", clear_on_submit=False, border=False):
-        desc_col, load_col = st.columns((0.85, 0.15))
-
-        with desc_col:
-                if st.session_state.clas_description:
-                    description = st.text_input("Product Description", value=st.session_state.clas_description, key="clas_desc_input")
-                else:
-                    description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")
-        with load_col:
-            load_desc = st.button("Load", key="load_desc", type="secondary",
-                                help="Load the improved description from the previous step", 
-                                disabled=not st.session_state.imp_description,
-                                use_container_width=True)
-            if load_desc:
-                st.session_state.clas_description = st.session_state.imp_description
-                    
+        if st.session_state.clas_description:
+            description = st.text_input("Product Description :sparkles:", 
+                                        value=st.session_state.clas_description, key="clas_desc_input")
+        else:
+            description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")      
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="clas_topn_input")
-        submitted = st.form_submit_button("Predict :robot_face:", type="primary")
-
+        submitted = st.form_submit_button("Analyse :robot_face:", type="primary")
 
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
@@ -282,12 +294,18 @@ with clasi_analysis_tab:
         payload = {"description": description, "topn": topn}
 
         try:
-            with st.spinner("Predicting HS Codes..."):
-                response = requests.post(f"{clasi_url}/predict_info", json=payload)
+            with st.spinner("Analysing HS Classification..."):
+                response = requests.post(f"{clasi_url}/classi_analysis", json=payload)
             if response.status_code == 200:
                 data = response.json()
-                predictions = data.get("predictions", [])
-                st.session_state.adv_predictions = predictions 
+                report = data.get("report", "")
+                #### SEE how to show this permanently, after the first time
+                st.session_state.clas_report = report
+                st.markdown("#### Classification Report")
+                report, date_time = report_completition(st.session_state.clas_description,
+                                            topn, report)
+                st.markdown(report)
+                st.download_button("Save :floppy_disk:", report, f"classification_report_{date_time}.txt", "text/plain")
             else:
                 st.error(f"Error {response.status_code}: {response.text}")
         except Exception as e:
