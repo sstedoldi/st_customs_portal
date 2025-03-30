@@ -12,6 +12,7 @@ import requests
 # import os
 # configutations
 from modules.gral_config import page_config, back_url_config
+
 # recourses
 
 # processing
@@ -20,9 +21,9 @@ import pandas as pd
 pd.options.display.float_format = '{:.2f}'.format
 # # ploting
 # import plotly.express as px
-# import plotly.graph_objects as go
+import plotly.graph_objects as go
 # local compenents
-from modules.gral_comp import title
+from modules.gral_comp import title, vbarplot_top_cat
 # local styles
 from styles.basics import hide, lg_color, cont_padding
 
@@ -199,25 +200,25 @@ with advanced_clasi_tab:
                 try:
                     with st.spinner("Fetching questions for candidate HS Codes..."):
                         q_response = requests.post(f"{clasi_url}/questions_en_desc", json=question_payload)
-                        if q_response.status_code == 200:
-                            q_data = q_response.json()
-                            questions = q_data.get("questions", [])
-                            if questions:
-                                st.markdown("#### Questions for Improving Description")
-                                # Use a form to gather Q&A
-                                with st.form("qa_form", clear_on_submit=False, border=False):
-                                    qa_pairs = []
-                                    answer_len = 0
-                                    for i, question in enumerate(questions):
-                                        st.write(f"{i+1}. {question}")
-                                        answer = st.text_input("Answer", key=f"answer_{i}", label_visibility="collapsed")
-                                        answer_len += len(answer)
-                                        qa_pairs.append({"question": question, "answer": answer})
-                                    improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary")
-                            else:
-                                st.info("No questions available for the candidate HS Codes.")
+                    if q_response.status_code == 200:
+                        q_data = q_response.json()
+                        questions = q_data.get("questions", [])
+                        if questions:
+                            st.markdown("#### Questions for Improving Description")
+                            # Use a form to gather Q&A
+                            with st.form("qa_form", clear_on_submit=False, border=False):
+                                qa_pairs = []
+                                answer_len = 0
+                                for i, question in enumerate(questions):
+                                    st.write(f"{i+1}. {question}")
+                                    answer = st.text_input("Answer", key=f"answer_{i}", label_visibility="collapsed")
+                                    answer_len += len(answer)
+                                    qa_pairs.append({"question": question, "answer": answer})
+                                improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary")
                         else:
-                            st.error(f"Error fetching questions: {q_response.text}")
+                            st.info("No questions available for the candidate HS Codes.")
+                    else:
+                        st.error(f"Error fetching questions: {q_response.text}")
                 except Exception as q_e:
                     st.error(f"An error occurred while fetching questions: {q_e}")
 
@@ -257,13 +258,15 @@ if "clas_description" not in st.session_state:
 if "clas_report" not in st.session_state:
     st.session_state.clas_report = ""
 
-def report_completition(description, topn, report):
+def report_completion(description, topn, report):
     date_time = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    report_out = f"""**Description analyzed** {description} \n\n 
-                **{topn} candidates HS06 codes** \n\n 
-                **Date**: {date_time} \n\n
-                **Classification Report**:  {report}
-                """
+    report_out = (
+        f"#### Classification Report\n\n"
+        f"{report}\n\n\n"
+        f"*Date: {date_time}*\n\n"
+        f"*Description provided: ''{description}''*\n\n"
+        f"*Top N configured: {topn}*\n\n\n"
+    )
     return report_out, date_time
 
 with clasi_analysis_tab:
@@ -291,35 +294,159 @@ with clasi_analysis_tab:
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
         st.session_state.clas_description = description
-        payload = {"description": description, "topn": topn}
-
+        payload = {"description": st.session_state.clas_description, "topn": topn}
         try:
             with st.spinner("Analysing HS Classification..."):
                 response = requests.post(f"{clasi_url}/classi_analysis", json=payload)
             if response.status_code == 200:
                 data = response.json()
                 report = data.get("report", "")
-                #### SEE how to show this permanently, after the first time
                 st.session_state.clas_report = report
-                st.markdown("#### Classification Report")
-                report, date_time = report_completition(st.session_state.clas_description,
-                                            topn, report)
-                st.markdown(report)
-                st.download_button("Save :floppy_disk:", report, f"classification_report_{date_time}.txt", "text/plain")
             else:
                 st.error(f"Error {response.status_code}: {response.text}")
+            if st.session_state.clas_report:
+                st.session_state.clas_report, date_time = report_completion(st.session_state.clas_description,
+                                            topn, st.session_state.clas_report)
+                st.write(st.session_state.clas_report)
+                doc_name = f"classification_report_{date_time}.txt"
+                download = st.download_button("Save :floppy_disk:", st.session_state.clas_report, \
+                                   doc_name, "text/plain")
+            if download:
+                st.write(st.session_state.clas_report)
+                st.success(f"Report saved as {doc_name}")
         except Exception as e:
             st.error(f"An error occurred: {e}")
     elif submitted and not description.strip():
         st.warning("Please enter a product description.")
 
 ################################
-
-
-################################
 # CLAS MODEL CARD
+# Initialize simple classi session state variables
+if "metadata" not in st.session_state:
+    st.session_state.metadata = None
+
 with model_card_tab:
     st.subheader("Model Card :robot_face:")
     st.markdown("Review the clasi model metadata and its expected performance")
+ 
+    try:
+        with st.spinner("Getting model metadata..."):
+            response = requests.post(f"{clasi_url}/metadata")
+        if response.status_code == 200:
+            metadata = response.json()
+            st.session_state.metadata = metadata.get("metadata", None)
+        else:
+            st.error(f"Error {response.status_code}: {response.text}")
+
+        if st.session_state.metadata:
+            metadata = st.session_state.metadata
+
+            # Basic Information and Performance Metrics
+            basic_col, metrics_col = st.columns(2)
+
+            # Basic Model Information
+            with basic_col:
+                st.markdown("#### Basic Model Information")
+                basic_info = [
+                    ["Embedding Dimension", metadata.get("embedding_dimension", None)],
+                    ["Epochs", metadata.get("epochs", None)],
+                    ["Training Samples", metadata["training"].get("train_samples", None)],
+                    ["Training Date", metadata["training"].get("training_date", None)],
+                ]
+                df_basic = pd.DataFrame(basic_info, columns=["Parameter", "Value"]).astype(str)
+                st.table(df_basic)
+
+                st.markdown("#### Model Parameters")
+                model_params = metadata.get("model_params", {})
+                df_params = pd.DataFrame(list(model_params.items()), columns=["Parameter", "Value"]).astype(str)
+                st.table(df_params)
+
+            # Model Performance Metrics
+            with metrics_col:
+                st.markdown("#### Model Performance Metrics")
+                eval_metrics = metadata.get("evaluation", {})
+                overall_accuracy = eval_metrics.get("overall_accuracy", None)
+                ci = eval_metrics.get("accuracy_confidence_interval", {})
+                basic_perf = [
+                    ["Overall Accuracy", overall_accuracy],
+                    ["Confidence Mean", ci.get("mean", None)],
+                    ["Lower Bound", ci.get("lower_bound", None)],
+                    ["Upper Bound", ci.get("upper_bound", None)],
+                ]
+                df_perf = pd.DataFrame(basic_perf, columns=["Metric", "Value"]).astype(str)
+                st.table(df_perf)
+
+                st.markdown("#### Per Test Set Accuracy")
+                per_test = eval_metrics.get("per_test_set_accuracy", [])
+                df_test = pd.DataFrame({
+                    "Test Set": list(range(1, len(per_test) + 1)),
+                    "Accuracy": per_test
+                })
+                st.table(df_test)
+
+            st.markdown("---")
+            st.markdown("#### Aggregated Performance by HS Codes")
+
+            hs_metrics = eval_metrics.get("hs_code_metrics", {})
+
+            # Aggregated performance by HS Chapter (first 2 digits)
+            # Build a DataFrame that contains chapter-level totals.
+            chapter_list = []
+            for code, metrics in hs_metrics.items():
+                chapter = code[:2]
+                chapter_list.append({
+                    "Chapter": chapter,
+                    "Total Samples": metrics.get("total_samples", 0),
+                    "Correct": metrics.get("correct_predictions", 0)
+                })
+
+            df_chapter_raw = pd.DataFrame(chapter_list)
+            # Aggregate by chapter: sum total samples and correct predictions.
+            df_chapter = df_chapter_raw.groupby("Chapter").sum().reset_index()
+            # Compute accuracy per chapter (optional, not used for this plot)
+            df_chapter["Accuracy"] = df_chapter["Correct"] / df_chapter["Total Samples"]
+
+            st.markdown("##### HS Chapter: Total Samples")
+            # Use the provided function to show the top 5 chapters ordered by total samples.
+            vbarplot_top_cat(df_chapter, "Chapter", "Total Samples", top_n=5, title="Top 5 HS Chapters by Total Samples")
+
+            # Aggregated performance by HS Heading (first 4 digits)
+            # Build a DataFrame for HS headings
+            heading_list = []
+            for code, metrics in hs_metrics.items():
+                heading = code[:4]
+                heading_list.append({
+                    "Heading": heading,
+                    "Total Samples": metrics.get("total_samples", 0),
+                    "Correct": metrics.get("correct_predictions", 0)
+                })
+
+            df_heading_raw = pd.DataFrame(heading_list)
+            # Aggregate by heading.
+            df_heading = df_heading_raw.groupby("Heading").sum().reset_index()
+            df_heading["Accuracy"] = df_heading["Correct"] / df_heading["Total Samples"]
+
+            st.markdown("#### Top 5 Best Performing HS Headings")
+            # Use the provided function to show the best performing headings by Accuracy.
+            vbarplot_top_cat(df_heading, "Heading", "Accuracy", top_n=5, title="Top 5 Best Performing HS Headings")
+
+            st.markdown("#### Top 5 Worst Performing HS Headings")
+            # For the worst performing, sort ascending manually.
+            worst_df = df_heading.sort_values(by="Accuracy", ascending=True).head(5)
+            trace = go.Bar(
+                x=worst_df["Heading"],
+                y=worst_df["Accuracy"]
+            )
+            layout = go.Layout(
+                title="Top 5 Worst Performing HS Headings",
+                xaxis=dict(title="Heading"),
+                yaxis=dict(title="Accuracy", range=[0, worst_df["Accuracy"].max()*1.1])
+            )
+            fig = go.Figure(data=[trace], layout=layout)
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+
 
 ################################
