@@ -7,7 +7,7 @@ pd.options.display.float_format = '{:.2f}'.format
 from modules.gral_config import page_config
 from modules.data_processes import basic_trafo, load_data, today_filtering
 from modules.gral_comp import title, total_metric, metric_dict, colors, \
-    line_plot, line_plot_cur_vs_pre, vbarplot_top_cat
+    line_plot, line_plot_cur_vs_pre, barplot_top_cat
 from styles.basics import hide, lg_color, cont_padding
 
 ### CONFIGURATION
@@ -105,7 +105,7 @@ with tabs[1]:
         selected_num_col = st.selectbox("Numeric Variable", options=numeric_cols, key=f"num_col_{group_col}")
 
     with col_plot:
-        vbarplot_top_cat(
+        barplot_top_cat(
             df=df_filtered,
             group_col=group_col,
             num_col=selected_num_col,
@@ -124,7 +124,7 @@ with tabs[1]:
         selected_num_col = st.selectbox("Numeric Variable", options=numeric_cols, key=f"num_col_{group_col}")
 
     with col_plot:
-        vbarplot_top_cat(
+        barplot_top_cat(
             df=df_filtered,
             group_col=group_col,
             num_col=selected_num_col,

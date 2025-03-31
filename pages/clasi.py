@@ -421,23 +421,13 @@ with model_card_tab:
             hs02_test["accuracy"] = hs02_test["correct_predictions"]/hs02_test["total_samples"]
             hs02_test.sort_values('total_samples', ascending=False, inplace=True)
 
-            st.markdown("Total samples tested")
             top_col, bot_col = st.columns(2)
             with top_col:
-                barplot_top_cat(hs02_test, "chapter", "total_samples", top_n=10, 
-                                title="Top 10 HS Chapters by Total Samples")
+                barplot_top_cat(hs02_test, "chapter", "total_samples", top_n=None, 
+                                title="HS Chapters by Total Samples")
             with bot_col:
-                barplot_top_cat(hs02_test, "chapter", "total_samples", top_n=10, 
-                                title="Bottom 10 HS Chapters by Total Samples", ascending=True)
-                
-            st.markdown("Accuracy achieved")
-            top_col, bot_col = st.columns(2)
-            with top_col:
-                barplot_top_cat(hs02_test, "chapter", "accuracy", top_n=10, 
-                                title="Top 10 HS Chapters by Accuracy")
-            with bot_col:
-                barplot_top_cat(hs02_test, "chapter", "accuracy", top_n=10, 
-                                title="Bottom 10 HS Chapters by Accuracy", ascending=True)
+                barplot_top_cat(hs02_test, "chapter", "accuracy", top_n=None, 
+                                title="HS Chapters by Accuracy")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
