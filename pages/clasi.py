@@ -23,7 +23,7 @@ pd.options.display.float_format = '{:.2f}'.format
 # import plotly.express as px
 import plotly.graph_objects as go
 # local compenents
-from modules.gral_comp import title, vbarplot_top_cat
+from modules.gral_comp import title, barplot_top_cat
 # local styles
 from styles.basics import hide, lg_color, cont_padding
 
@@ -346,104 +346,98 @@ with model_card_tab:
 
             # Basic Model Information
             with basic_col:
-                st.markdown("#### Basic Model Information")
-                basic_info = [
-                    ["Embedding Dimension", metadata.get("embedding_dimension", None)],
+                st.markdown("General Metadata")
+                gral_metadata = [
+                    ["Model name", metadata.get("model_name",None)],
+                    ["Model library", metadata.get("model_lib",None)],
+                    ["Model author", metadata.get("model_author",None)],
+                    ["Embedding Dim", metadata.get("embedding_dimension", None)],
                     ["Epochs", metadata.get("epochs", None)],
-                    ["Training Samples", metadata["training"].get("train_samples", None)],
-                    ["Training Date", metadata["training"].get("training_date", None)],
                 ]
-                df_basic = pd.DataFrame(basic_info, columns=["Parameter", "Value"]).astype(str)
+                df_basic = pd.DataFrame(gral_metadata, columns=["Parameter", "Value"]).astype(str)
+                df_basic.set_index("Parameter", drop=True, inplace=True)
                 st.table(df_basic)
-
-                st.markdown("#### Model Parameters")
-                model_params = metadata.get("model_params", {})
-                df_params = pd.DataFrame(list(model_params.items()), columns=["Parameter", "Value"]).astype(str)
-                st.table(df_params)
 
             # Model Performance Metrics
             with metrics_col:
-                st.markdown("#### Model Performance Metrics")
+                st.markdown("Performance Metrics")
                 eval_metrics = metadata.get("evaluation", {})
-                overall_accuracy = eval_metrics.get("overall_accuracy", None)
+                overall_accuracy = float(eval_metrics.get("overall_accuracy", None)) * 100
                 ci = eval_metrics.get("accuracy_confidence_interval", {})
                 basic_perf = [
                     ["Overall Accuracy", overall_accuracy],
-                    ["Confidence Mean", ci.get("mean", None)],
-                    ["Lower Bound", ci.get("lower_bound", None)],
-                    ["Upper Bound", ci.get("upper_bound", None)],
+                    ["Confidence Mean", float(ci.get("mean", None)) * 100],
+                    ["Lower Bound", round(float(ci.get("lower_bound", None)),3) * 100],
+                    ["Upper Bound", round(float(ci.get("upper_bound", None)),3) * 100],
                 ]
                 df_perf = pd.DataFrame(basic_perf, columns=["Metric", "Value"]).astype(str)
+                df_perf.set_index("Metric", drop=True, inplace=True)
                 st.table(df_perf)
 
-                st.markdown("#### Per Test Set Accuracy")
-                per_test = eval_metrics.get("per_test_set_accuracy", [])
-                df_test = pd.DataFrame({
-                    "Test Set": list(range(1, len(per_test) + 1)),
-                    "Accuracy": per_test
-                })
-                st.table(df_test)
+            # Training Timestamp & Samples
+            time_col, samples_col = st.columns(2)
+            with time_col:
+                st.write("Training Timestamp")
+                train_date, train_time = st.columns(2)
+                with train_date:
+                    st.write(metadata["training"].get("training_date", None).split("_")[0])
+                with train_time:
+                    st.write(metadata["training"].get("training_date", None).split("_")[1].replace('-', ':'))
+            with samples_col:
+                st.write("Training Samples")
+                st.write(str(metadata["training"].get("train_samples", None)))
 
             st.markdown("---")
-            st.markdown("#### Aggregated Performance by HS Codes")
+            st.markdown("Aggregated Test Performance by HS Chapters")
 
             hs_metrics = eval_metrics.get("hs_code_metrics", {})
 
             # Aggregated performance by HS Chapter (first 2 digits)
+            hs06_test = pd.DataFrame(hs_metrics).T
+            hs06_test["chapter"] = hs06_test.index.str[:2]
+
             # Build a DataFrame that contains chapter-level totals.
-            chapter_list = []
+            chapters_set = set()
             for code, metrics in hs_metrics.items():
                 chapter = code[:2]
-                chapter_list.append({
-                    "Chapter": chapter,
-                    "Total Samples": metrics.get("total_samples", 0),
-                    "Correct": metrics.get("correct_predictions", 0)
-                })
+                chapters_set.add(chapter)
+            
+            total_samples = []
+            correct_pred = []
+            for chapter in chapters_set:
+                df_chapter = hs06_test[hs06_test["chapter"] == chapter]
+                if len(df_chapter) > 0:
+                    total_samples.append(df_chapter["total_samples"].sum())
+                    correct_pred.append(df_chapter["correct_predictions"].sum())
+                else:
+                    total_samples.append(0)
+                    correct_pred.append(0)
+            
+            hs02_test = pd.DataFrame({
+                "chapter": list(chapters_set),
+                "total_samples": total_samples,
+                "correct_predictions": correct_pred
+            })
+            hs02_test["accuracy"] = hs02_test["correct_predictions"]/hs02_test["total_samples"]
+            hs02_test.sort_values('total_samples', ascending=False, inplace=True)
 
-            df_chapter_raw = pd.DataFrame(chapter_list)
-            # Aggregate by chapter: sum total samples and correct predictions.
-            df_chapter = df_chapter_raw.groupby("Chapter").sum().reset_index()
-            # Compute accuracy per chapter (optional, not used for this plot)
-            df_chapter["Accuracy"] = df_chapter["Correct"] / df_chapter["Total Samples"]
-
-            st.markdown("##### HS Chapter: Total Samples")
-            # Use the provided function to show the top 5 chapters ordered by total samples.
-            vbarplot_top_cat(df_chapter, "Chapter", "Total Samples", top_n=5, title="Top 5 HS Chapters by Total Samples")
-
-            # Aggregated performance by HS Heading (first 4 digits)
-            # Build a DataFrame for HS headings
-            heading_list = []
-            for code, metrics in hs_metrics.items():
-                heading = code[:4]
-                heading_list.append({
-                    "Heading": heading,
-                    "Total Samples": metrics.get("total_samples", 0),
-                    "Correct": metrics.get("correct_predictions", 0)
-                })
-
-            df_heading_raw = pd.DataFrame(heading_list)
-            # Aggregate by heading.
-            df_heading = df_heading_raw.groupby("Heading").sum().reset_index()
-            df_heading["Accuracy"] = df_heading["Correct"] / df_heading["Total Samples"]
-
-            st.markdown("#### Top 5 Best Performing HS Headings")
-            # Use the provided function to show the best performing headings by Accuracy.
-            vbarplot_top_cat(df_heading, "Heading", "Accuracy", top_n=5, title="Top 5 Best Performing HS Headings")
-
-            st.markdown("#### Top 5 Worst Performing HS Headings")
-            # For the worst performing, sort ascending manually.
-            worst_df = df_heading.sort_values(by="Accuracy", ascending=True).head(5)
-            trace = go.Bar(
-                x=worst_df["Heading"],
-                y=worst_df["Accuracy"]
-            )
-            layout = go.Layout(
-                title="Top 5 Worst Performing HS Headings",
-                xaxis=dict(title="Heading"),
-                yaxis=dict(title="Accuracy", range=[0, worst_df["Accuracy"].max()*1.1])
-            )
-            fig = go.Figure(data=[trace], layout=layout)
-            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("Total samples tested")
+            top_col, bot_col = st.columns(2)
+            with top_col:
+                barplot_top_cat(hs02_test, "chapter", "total_samples", top_n=10, 
+                                title="Top 10 HS Chapters by Total Samples")
+            with bot_col:
+                barplot_top_cat(hs02_test, "chapter", "total_samples", top_n=10, 
+                                title="Bottom 10 HS Chapters by Total Samples", ascending=True)
+                
+            st.markdown("Accuracy achieved")
+            top_col, bot_col = st.columns(2)
+            with top_col:
+                barplot_top_cat(hs02_test, "chapter", "accuracy", top_n=10, 
+                                title="Top 10 HS Chapters by Accuracy")
+            with bot_col:
+                barplot_top_cat(hs02_test, "chapter", "accuracy", top_n=10, 
+                                title="Bottom 10 HS Chapters by Accuracy", ascending=True)
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
