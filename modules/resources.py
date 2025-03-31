@@ -14,7 +14,7 @@ def post_meta_request(endpoint):
         else:
             return {'error': 'Server Error'}
     except Exception as e:
-        print(e)
+        # print(e)
         return {'error': 'Connection Error'}
     
 # batch processing

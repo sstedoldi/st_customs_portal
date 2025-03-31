@@ -5,14 +5,11 @@
 # app
 import streamlit as st
 # general
-import os
-import datetime
-import random
 import time
-import requests
 # configurations
 from modules.gral_config import page_config
 from modules.gral_config import back_url_config
+from modules.auth_config import auth_config
 
 # processing
 import pandas as pd
@@ -27,7 +24,9 @@ from modules.gral_comp import title
 from styles.basics import hide, lg_color, cont_padding
 
 ################################
-### CONFIG
+# CONFIG
+################################
+
 st.set_page_config(**page_config)
 
 ### STYLES
@@ -35,13 +34,39 @@ st.markdown(lg_color(".st-emotion-cache-1dp5vir.ezrtsby1"), unsafe_allow_html=Tr
 st.markdown(hide(".st-emotion-cache-zq5wmm.ezrtsby0"), unsafe_allow_html=True)       # options & deploy button
 st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), unsafe_allow_html=True)
 
-################################
+
 ### HEADER
 img = "images/DALLE-chatbot_cut.jpg"
 st.image(img, use_container_width=True)
 st.header("Assistant Bot")
 
-################################
+### AUTHENTICATION
+authenticator = auth_config()
+
+try:
+    authenticator.login('sidebar')
+except Exception as e:
+    st.error(e)
+
+if st.session_state.get('authentication_status'):
+    welcome_col, ai_col = st.sidebar.columns((0.8,0.2))
+    with welcome_col:
+        st.markdown(f"Welcome **{st.session_state.get('name')}**")
+    with ai_col:
+        if "ai" in st.session_state.get('roles'):
+            st.markdown(":large_green_circle:", help="Full AI functions available")
+            st.session_state.ai_powered = True
+        else:
+            st.markdown(":large_yellow_circle:", help="Basic AI functions available")
+            st.session_state.ai_powered = False
+    authenticator.logout('Logout','sidebar')
+elif st.session_state.get('authentication_status') is False:
+    st.sidebar.error('Username/password is incorrect')
+    st.session_state.ai_powered = False
+elif st.session_state.get('authentication_status') is None:
+    st.sidebar.warning('Enter your username and password')
+    st.session_state.ai_powered = False
+
 # Base URL for the Flask app
 rag_url = back_url_config["rag_url"]
 
@@ -75,7 +100,7 @@ with chat_tab:
             st.markdown(message["content"])
 
     # Then capture new user input
-    if prompt := st.chat_input("Ask something..."):
+    if prompt := st.chat_input("Ask something...", disabled=not st.session_state.ai_powered):
         # Display user's message in the chat
         with st.chat_message("user"):
             st.markdown(prompt)

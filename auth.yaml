@@ -1,0 +1,40 @@
+cookie:
+  expiry_days: 3
+  key: kcp1
+  name: customs_portal
+credentials:
+  usernames:
+    sstedoldi:
+      email: santtedo@gmail.com
+      failed_login_attempts: 0
+      first_name: Santiago
+      last_name: Tedoldi
+      logged_in: false
+      password: $2b$12$GZOFz2N8UiRSItIpGE1/Qu0vhB0b2hlSQ3fyTeeHLw.D/scKkdvTK
+      roles:
+      - admin
+      - editor
+      - viewer
+      - ai
+    staruser1:
+      email: staruser1@gmail.com
+      failed_login_attempts: 0
+      first_name: StarUser
+      last_name: 2025
+      logged_in: false
+      password: $2b$12$i4vf6Zxwcy69CtKp3pOOueaM67mCD0sA5E6EySUYu6pTEnIxhtbJ6
+      roles:
+      - viewer
+      - ai
+    user1:
+      email: user1@gmail.com
+      failed_login_attempts: 0
+      first_name: User
+      last_name: 2025
+      logged_in: false
+      password: $2b$12$ve9Ayn5rM8Ul4HPzluG/Ie/vtZSy8XVV9lVOxxnl7ypJA5haitlkW
+      roles:
+      - viewer
+pre-authorized:
+  emails:
+  - stedoldi@arca.gob.ar

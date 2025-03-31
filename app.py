@@ -9,8 +9,11 @@ from modules.data_processes import basic_trafo, load_data, today_filtering
 from modules.gral_comp import title, total_metric, metric_dict, colors, \
     line_plot, line_plot_cur_vs_pre, barplot_top_cat
 from styles.basics import hide, lg_color, cont_padding
+from modules.auth_config import auth_config#, auth_update
 
-### CONFIGURATION
+################################
+# CONFIGURATION
+################################
 st.set_page_config(**page_config)
 
 ### STYLES
@@ -23,8 +26,38 @@ img = "images/DALLE-customs-portal_cut.jpg"
 st.image(img, use_container_width=True)
 title()
 
-### SIDEBAR FILTERS
-st.sidebar.header("Filters")
+### AUTHENTICATION
+authenticator = auth_config()
+
+try:
+    authenticator.login('sidebar')
+except Exception as e:
+    st.error(e)
+
+if st.session_state.get('authentication_status'):
+    welcome_col, ai_col = st.sidebar.columns((0.8,0.2))
+    with welcome_col:
+        st.markdown(f"Welcome **{st.session_state.get('name')}**")
+    with ai_col:
+        if "ai" in st.session_state.get('roles'):
+            st.markdown(":large_green_circle:", help="Full AI functions available")
+            st.session_state.ai_powered = True
+        else:
+            st.markdown(":large_yellow_circle:", help="Basic AI functions available")
+            st.session_state.ai_powered = False
+    authenticator.logout('Logout','sidebar')
+elif st.session_state.get('authentication_status') is False:
+    st.sidebar.error('Username/password is incorrect')
+    st.session_state.ai_powered = False
+elif st.session_state.get('authentication_status') is None:
+    st.sidebar.warning('Enter your username and password')
+    st.session_state.ai_powered = False
+
+# auth_update(auth)
+
+################################
+# SYNTHETIC DATA PROCESSING
+################################
 
 @st.cache_data(show_spinner="Loading and transforming home data")
 def load_and_transform():
@@ -39,31 +72,33 @@ df = load_and_transform()
 
 # Date filter
 date_min = df['formatted_date'].min()
-date_max = df['formatted_date'].max()
-selected_dates = st.sidebar.date_input("Select Date Range", [date_min, date_max])
+# date_max = df['formatted_date'].max()
+date_max = datetime.date(2014, 12, 24)
+
+# selected_dates = st.sidebar.date_input("Select Date Range", [date_min, date_max])
+selected_dates = [date_min, date_max]
 df_filtered = df[
     (df['formatted_date'] >= pd.to_datetime(selected_dates[0])) &
     (df['formatted_date'] <= pd.to_datetime(selected_dates[1]))
 ]
 
 # Numeric columns
-# numeric_cols = list(df_filtered.select_dtypes(include=["number"]).columns)
 numeric_cols = ['CIF_USD_EQUIVALENT','QUANTITY','GROSS.WEIGHT','TOTAL.TAXES.USD','RAISED_TAX_AMOUNT_USD']
 
-# Office filter (if desired, can be omitted for performance)
-office_options = sorted(df_filtered['OFFICE'].unique())
-selected_offices = st.sidebar.multiselect("Select Office(s)", options=office_options, default=office_options)
-df_filtered = df_filtered[df_filtered['OFFICE'].isin(selected_offices)]
-
-# Reference date for time comparisons
-today_ref = st.sidebar.date_input("Reference Date", datetime.date(2014, 5, 25))
+# # Reference date for time comparisons
+# today_ref = st.sidebar.date_input("Reference Date", datetime.date(2014, 12, 10))
+today_ref = datetime.date(2014, 12, 24)
 df_today, df_pre_year, df_cur_year = today_filtering(df_filtered, today_ref)
 
-### MAIN DASHBOARD TABS
-tabs = st.tabs(["Dashboard", "Agg Analysis", "Illicit Findings"])
+################################
+# MAIN TABS
+################################
 
-# Tab 1: Dashboard – Key Metrics and Global Trends
-with tabs[0]:
+dashboard_tab, agganalysis_tab, illicit_tab = st.tabs(["Dashboard", "Agg Analysis", "Illicit Findings"])
+
+################################
+# Dashboard – Key Metrics and Global Trends
+with dashboard_tab:
     st.header("Dashboard")
 
     st.subheader("Key Metrics")
@@ -80,9 +115,7 @@ with tabs[0]:
         count += 1
         if count >= 3:
             count = 0
-
     st.markdown("---")
-
     st.subheader("Global Trends")
     period_option = st.radio("Period", options=['6M', '12M', 'CW'], horizontal=True)
     for idx, var in enumerate(['CIF_USD_EQUIVALENT', 'TOTAL.TAXES.USD']):
@@ -91,11 +124,11 @@ with tabs[0]:
         else:
             line_plot(df_filtered, var, colors, idx, today_ref, period=period_option)
 
-# Tab 2: Aggregated Analysis – Top N Plots and Tables
-with tabs[1]:
+################################
+# Aggregated Analysis – Top N Plots and Tables
+with agganalysis_tab:
 
     st.header("Aggregated Analysis")
-
     group_col = "OFFICE"
     st.subheader(group_col)
     col_plot, col_controls = st.columns([3, 1])
@@ -154,8 +187,9 @@ with tabs[1]:
     # }).reset_index()
     # st.dataframe(importer_grouped)
 
-# Tab 3: Illicit Findings – Flagged Operations Analysis
-with tabs[2]:
+################################
+# Illicit Findings – Flagged Operations Analysis
+with illicit_tab:
     st.header("Illicit Findings")
     illicit_df = df_filtered[df_filtered['illicit'] == True]
     if not illicit_df.empty:

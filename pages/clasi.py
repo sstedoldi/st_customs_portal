@@ -12,6 +12,7 @@ import requests
 # import os
 # configutations
 from modules.gral_config import page_config, back_url_config
+from modules.auth_config import auth_config
 
 # recourses
 
@@ -28,35 +29,46 @@ from modules.gral_comp import title, barplot_top_cat
 from styles.basics import hide, lg_color, cont_padding
 
 ################################
-################################
-################################
-
 ### CONFIG
+################################
 st.set_page_config(**page_config)
-
-################################
-################################
-################################
 
 ### STYLES
 st.markdown(lg_color(".st-emotion-cache-1dp5vir.ezrtsby1"), unsafe_allow_html=True) # line
 st.markdown(hide(".st-emotion-cache-zq5wmm.ezrtsby0"), unsafe_allow_html=True) # options & deploy botton
 st.markdown(cont_padding(".block-container.st-emotion-cache-z5fcl4.ea3mdgi5"), unsafe_allow_html=True)
 
-################################
-################################
-################################
-
 ### HEADER
 img = "images/DALLE-hs-classi_cut.jpg"
 st.image(img, use_container_width=True)
 st.header("HS Classification")
 
-################################
-################################
-################################
+### AUTHENTICATION
+authenticator = auth_config()
 
-### CONTENT
+try:
+    authenticator.login('sidebar')
+except Exception as e:
+    st.error(e)
+
+if st.session_state.get('authentication_status'):
+    welcome_col, ai_col = st.sidebar.columns((0.8,0.2))
+    with welcome_col:
+        st.markdown(f"Welcome **{st.session_state.get('name')}**")
+    with ai_col:
+        if "ai" in st.session_state.get('roles'):
+            st.markdown(":large_green_circle:", help="Full AI functions available")
+            st.session_state.ai_powered = True
+        else:
+            st.markdown(":large_yellow_circle:", help="Basic AI functions available")
+            st.session_state.ai_powered = False
+    authenticator.logout('Logout','sidebar')
+elif st.session_state.get('authentication_status') is False:
+    st.sidebar.error('Username/password is incorrect')
+    st.session_state.ai_powered = False
+elif st.session_state.get('authentication_status') is None:
+    st.sidebar.warning('Enter your username and password')
+    st.session_state.ai_powered = False
 
 # FastAPI endpoint URL
 clasi_url = back_url_config["clasi_url"]
@@ -145,7 +157,8 @@ with advanced_clasi_tab:
     with st.form("adv_pred_form", clear_on_submit=False, border=False):
         description = st.text_input("Product Description", value="pure-bred breeding horses", key="adv_desc_input")
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="adv_topn_input")
-        submitted = st.form_submit_button("Predict :robot_face:", type="primary")
+        submitted = st.form_submit_button("Process :robot_face:", type="primary", 
+                                          disabled=not st.session_state.ai_powered)
 
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
@@ -214,7 +227,8 @@ with advanced_clasi_tab:
                                     answer = st.text_input("Answer", key=f"answer_{i}", label_visibility="collapsed")
                                     answer_len += len(answer)
                                     qa_pairs.append({"question": question, "answer": answer})
-                                improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary")
+                                improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary", 
+                                                    disabled=not st.session_state.ai_powered)
                         else:
                             st.info("No questions available for the candidate HS Codes.")
                     else:
@@ -289,8 +303,9 @@ with clasi_analysis_tab:
         else:
             description = st.text_input("Product Description", value="pure-bred breeding horses", key="clas_desc_input")      
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="clas_topn_input")
-        submitted = st.form_submit_button("Analyse :robot_face:", type="primary")
-
+        submitted = st.form_submit_button("Analyse :robot_face:", type="primary",
+                                          disabled=not st.session_state.ai_powered)
+        
     # If the prediction form is submitted and the description is not empty.
     if submitted and description.strip():
         st.session_state.clas_description = description
