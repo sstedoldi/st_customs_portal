@@ -46,17 +46,10 @@ st.header("HS Classification")
 ### AUTHENTICATION
 authenticator = auth_config()
 
-# try:
-#     authenticator.login('sidebar')
-# except Exception as e:
-#     st.error(e)
-
-# import requests
-# try:
-#     response = requests.get("http://fa_customs_clasi:8000/metadata")
-#     st.write(f"Response: {response.json()}")
-# except Exception as e:
-#     st.error(f"Error: {e}")
+try:
+    authenticator.login('sidebar')
+except Exception as e:
+    st.error(e)
 
 if st.session_state.get('authentication_status'):
     welcome_col, ai_col = st.sidebar.columns((0.8,0.2))
