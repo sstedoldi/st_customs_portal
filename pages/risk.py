@@ -91,7 +91,9 @@ except Exception as e:
 ################################
 
 risk_url = back_url_config["risk_url"]
+# st.text(f"Risk URL: {risk_url}")
 meta_endpoint = os.path.join(risk_url, 'metadata')
+
 
 try:
     metadata = post_meta_request(meta_endpoint)

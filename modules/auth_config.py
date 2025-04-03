@@ -1,11 +1,10 @@
-import streamlit as st
 import streamlit_authenticator as stauth
 
 import yaml
 from yaml.loader import SafeLoader
 
 def auth_config():
-    with open('auth.yaml') as file:
+    with open("../run/secrets/portal_users") as file:
         auth = yaml.load(file, Loader=SafeLoader)
 
     # Pre-hashing all plain text passwords once
