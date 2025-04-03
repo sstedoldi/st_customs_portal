@@ -97,11 +97,8 @@ meta_endpoint = os.path.join(risk_url, 'metadata')
 
 try:
     metadata = post_meta_request(meta_endpoint)
-    # print(metadata)
 except Exception as e:
-    # st.error("Error retrieving metadata: " + str(e))
-    metadata = None
-    pass
+    st.error("Error retrieving metadata: " + str(e))
 
 if metadata:
     try:
