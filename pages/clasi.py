@@ -72,7 +72,7 @@ elif st.session_state.get('authentication_status') is None:
 
 # FastAPI endpoint URL
 clasi_url = back_url_config["clasi_url"]
-st.write(f"CLASI URL: {clasi_url}")
+# st.write(f"CLASI URL: {clasi_url}")
 
 ################################
 # TABS
