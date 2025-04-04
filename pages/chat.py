@@ -166,9 +166,9 @@ with search_tab:
                     })
                 
                 # Display results as a DataFrame
-                df = pd.DataFrame(rows)
+                df = pd.DataFrame(rows).astype(str)
                 st.write("Retrieved Documents:")
-                st.dataframe(df)
+                st.dataframe(df) #check if table is better
                 
                 # Additionally, display each document's full details in expandable sections
                 st.write("Detailed Results:")
@@ -211,6 +211,6 @@ with history_tab:
         if history_data:
             df = pd.DataFrame(history_data)
             if "indexed_date" in df.columns:
-                df["indexed_date"] = pd.to_datetime(df["indexed_date"])
-            st.dataframe(df)
+                df["indexed_date"] = pd.to_datetime(df["indexed_date"]).astype(str)
+            st.dataframe(df.astype(str))
 
