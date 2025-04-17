@@ -32,7 +32,7 @@ def index_documents(source_type, source_path,
         "additional_info": additional_info,
         "comments": comments,
     })
-    if response.status_code == 200:
+    if response.status_code == 200 and response.json().get('message') == "Indexing completed":
         st.success("Indexing completed successfully!")
     else:
         st.error(f"Error in indexing: {response.json().get('error', 'Unknown error')}")
