@@ -230,6 +230,29 @@ with advanced_clasi_tab:
                                     qa_pairs.append({"question": question, "answer": answer})
                                 improve_submitted = st.form_submit_button("Improve :sparkles:", type="primary", 
                                                     disabled=not st.session_state.ai_powered)
+                                # Process the improvement only if the Q&A form is submitted.
+                                if improve_submitted and answer_len > 6: # At least 6 characters as answers
+                                    st.session_state.qa_pairs = qa_pairs
+                                    st.session_state.answers_extention = answer_len
+                                    improve_payload = {"description": st.session_state.adv_description, 
+                                                    "qa_pairs": st.session_state.qa_pairs}
+                                    try:
+                                        with st.spinner("Improving description..."):
+                                            imp_response = requests.post(f"{clasi_url}/improve_en_desc", json=improve_payload)
+                                        if imp_response.status_code == 200:
+                                            imp_data = imp_response.json()
+                                            new_desc = imp_data.get("new_description", "")
+                                            st.success(new_desc)
+                                            match = re.search(r'"(.*)"', new_desc)
+                                            if match:
+                                                new_desc = match.group(1)
+                                            st.session_state.imp_description = new_desc
+                                        else:
+                                            st.error(f"Error {imp_response.status_code}: {imp_response.text}")
+                                    except Exception as imp_e:
+                                        st.error(f"An error occurred while improving description: {imp_e}")
+                                elif improve_submitted and answer_len <= 6:
+                                    st.warning("Please provide proper answers to the questions to improve the description.")
                         else:
                             st.info("No questions available for the candidate HS Codes.")
                     else:
@@ -237,29 +260,6 @@ with advanced_clasi_tab:
                 except Exception as q_e:
                     st.error(f"An error occurred while fetching questions: {q_e}")
 
-            # Process the improvement only if the Q&A form is submitted.
-            if improve_submitted and answer_len > 6: # At least 6 characters as answers
-                st.session_state.qa_pairs = qa_pairs
-                st.session_state.answers_extention = answer_len
-                improve_payload = {"description": st.session_state.adv_description, 
-                                   "qa_pairs": st.session_state.qa_pairs}
-                try:
-                    with st.spinner("Improving description..."):
-                        imp_response = requests.post(f"{clasi_url}/improve_en_desc", json=improve_payload)
-                    if imp_response.status_code == 200:
-                        imp_data = imp_response.json()
-                        new_desc = imp_data.get("new_description", "")
-                        st.success(new_desc)
-                        match = re.search(r'"(.*)"', new_desc)
-                        if match:
-                            new_desc = match.group(1)
-                        st.session_state.imp_description = new_desc
-                    else:
-                        st.error(f"Error {imp_response.status_code}: {imp_response.text}")
-                except Exception as imp_e:
-                    st.error(f"An error occurred while improving description: {imp_e}")
-            elif improve_submitted and answer_len <= 6:
-                st.warning("Please provide proper answers to the questions to improve the description.")
 
 ################################
 # CLASSI ANALYSIS
