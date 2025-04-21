@@ -185,21 +185,34 @@ with search_tab:
 with index_tab:
     st.subheader("Index Documents")
     st.markdown("Feed the knowledge database with proper and relevant documentation")
-    source_type = st.selectbox("Source Type", ["pdf", "webpage", "directory"])
-    source_path = st.text_input("Enter the document path or URL")
-    doc_title = st.text_input("Enter the document title")
-    additional_info  = st.text_input("Enter additional information")
-    comments = st.text_input("Enter the other comments")
-    if st.button("Index :gear:", type="primary"):
-        if source_path:
-            index_documents(source_type, 
-                            source_path, 
-                            doc_title, 
-                            additional_info, 
-                            comments,
-                            rag_url=rag_url)
-        else:
+
+    # Create a form so that all the inputs are only submitted together
+    with st.form("index_form", border=False, clear_on_submit=False):
+        source_type    = st.selectbox("Source Type", ["pdf", "webpage", "directory"])
+        source_path    = st.text_input("Enter the document path or URL")
+        doc_title      = st.text_input("Enter the document title")
+        additional_info= st.text_input("Enter additional information")
+        comments       = st.text_input("Enter other comments")
+
+        # This button is inside the form
+        submit_index = st.form_submit_button("Index ⚙️")
+
+    # Only when the form is submitted do we run the indexing
+    if submit_index:
+        if not source_path:
             st.warning("Please provide a valid document path or URL")
+        else:
+            try:
+                index_documents(
+                    source_type=source_type,
+                    source_path=source_path,
+                    doc_title=doc_title,
+                    additional_info=additional_info,
+                    comments=comments,
+                    rag_url=rag_url
+                )
+            except Exception as e:
+                st.error(f"Indexing failed: {e}")
 
 ################################
 # INDEXING HISTORY

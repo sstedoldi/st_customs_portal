@@ -96,7 +96,7 @@ with simple_clasi_tab:
     st.subheader("Simple Classification")
     st.markdown("Enter a product description to get predicted HS Codes with their legal texts")
 
-    with st.form("simple_pred_form", border=False):
+    with st.form("simple_pred_form", border=False, clear_on_submit=False):
         description = st.text_input("Product Description", value="pure-bred breeding horses", key="simple_desc_input")
         topn = st.number_input("Number of top predictions", min_value=1, value=3, step=1, key="simple_topn_input")
         submitted = st.form_submit_button("Predict :robot_face:", type="primary")
